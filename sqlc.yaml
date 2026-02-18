@@ -1,0 +1,30 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    schema: "./migrations"
+    queries: "./queries/auth"
+    gen:
+      go:
+        package: "sqlc"
+        out: "backend/auth_service/internal/storage/db"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
+
+  - engine: "postgresql"
+    schema: "./migrations"
+    queries: "./queries/core"
+    gen:
+      go:
+        package: "sqlc"
+        out: "backend/core_service/internal/storage/db"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true

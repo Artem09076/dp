@@ -1,0 +1,34 @@
+services:
+    db:
+        image: postgres:latest
+        ports:
+        - "5432:5432"
+        command: [ "postgres", "-c", "log_statement=all", "-c", "log_destination=stderr" ]
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "postgres" ]
+            interval: 1s
+            retries: 20
+        environment:
+            POSTGRES_DB: ${DB_NAME}
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASS}
+        volumes:
+        - database-data:/var/lib/postgresql/data
+
+    migrations:
+        image: ghcr.io/kukymbr/goose-docker:3.24.2
+        restart: no
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+        - GOOSE_DRIVER=postgres
+        - GOOSE_DBSTRING=host=${DB_HOST} port=${DB_PORT} user=${DB_USER} password=${DB_PASS} dbname=${DB_NAME}
+        - GOOSE_VERBOSE=true
+        - GOOSE_COMMAND=${GOOSE_COMMAND}
+        - GOOSE_COMMAND_ARG=${GOOSE_COMMAND_ARG}
+        volumes:
+        - ./migrations:/migrations
+
+volumes:
+    database-data:
