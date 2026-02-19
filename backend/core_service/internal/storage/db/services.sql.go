@@ -7,8 +7,9 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createService = `-- name: CreateService :one
@@ -20,15 +21,15 @@ RETURNING id, performer_id, title, description, price, duration_minutes, created
 `
 
 type CreateServiceParams struct {
-	PerformerID     pgtype.UUID    `json:"performer_id"`
+	PerformerID     uuid.UUID      `json:"performer_id"`
 	Title           string         `json:"title"`
-	Description     pgtype.Text    `json:"description"`
-	Price           pgtype.Numeric `json:"price"`
+	Description     sql.NullString `json:"description"`
+	Price           string         `json:"price"`
 	DurationMinutes int32          `json:"duration_minutes"`
 }
 
 func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (Service, error) {
-	row := q.db.QueryRow(ctx, createService,
+	row := q.db.QueryRowContext(ctx, createService,
 		arg.PerformerID,
 		arg.Title,
 		arg.Description,
@@ -54,7 +55,7 @@ SELECT id, performer_id, title, description, price, duration_minutes, created_at
 `
 
 func (q *Queries) ListServices(ctx context.Context) ([]Service, error) {
-	rows, err := q.db.Query(ctx, listServices)
+	rows, err := q.db.QueryContext(ctx, listServices)
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +76,9 @@ func (q *Queries) ListServices(ctx context.Context) ([]Service, error) {
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

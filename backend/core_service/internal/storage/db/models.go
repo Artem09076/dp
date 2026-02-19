@@ -5,10 +5,12 @@
 package sqlc
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type BookingStatus string
@@ -226,59 +228,59 @@ func (ns NullVerificationStatus) Value() (driver.Value, error) {
 }
 
 type Booking struct {
-	ID             pgtype.UUID        `json:"id"`
-	ClientID       pgtype.UUID        `json:"client_id"`
-	ServiceID      pgtype.UUID        `json:"service_id"`
-	BasePrice      pgtype.Numeric     `json:"base_price"`
-	DiscountAmount pgtype.Numeric     `json:"discount_amount"`
-	FinalPrice     pgtype.Numeric     `json:"final_price"`
-	BookingTime    pgtype.Timestamptz `json:"booking_time"`
-	Status         BookingStatus      `json:"status"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID             uuid.UUID     `json:"id"`
+	ClientID       uuid.UUID     `json:"client_id"`
+	ServiceID      uuid.UUID     `json:"service_id"`
+	BasePrice      string        `json:"base_price"`
+	DiscountAmount string        `json:"discount_amount"`
+	FinalPrice     string        `json:"final_price"`
+	BookingTime    time.Time     `json:"booking_time"`
+	Status         BookingStatus `json:"status"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
 type Discount struct {
-	ID        pgtype.UUID        `json:"id"`
-	ServiceID pgtype.UUID        `json:"service_id"`
-	Type      DiscoutnType       `json:"type"`
-	Value     pgtype.Numeric     `json:"value"`
-	ValidFrom pgtype.Timestamptz `json:"valid_from"`
-	ValidTo   pgtype.Timestamptz `json:"valid_to"`
-	MaxUses   int32              `json:"max_uses"`
-	UsedCount int32              `json:"used_count"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ID        uuid.UUID    `json:"id"`
+	ServiceID uuid.UUID    `json:"service_id"`
+	Type      DiscoutnType `json:"type"`
+	Value     string       `json:"value"`
+	ValidFrom time.Time    `json:"valid_from"`
+	ValidTo   time.Time    `json:"valid_to"`
+	MaxUses   int32        `json:"max_uses"`
+	UsedCount int32        `json:"used_count"`
+	CreatedAt time.Time    `json:"created_at"`
 }
 
 type Review struct {
-	ID        pgtype.UUID        `json:"id"`
-	BookingID pgtype.UUID        `json:"booking_id"`
-	Rating    int32              `json:"rating"`
-	Comment   pgtype.Text        `json:"comment"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID        uuid.UUID      `json:"id"`
+	BookingID uuid.UUID      `json:"booking_id"`
+	Rating    int32          `json:"rating"`
+	Comment   sql.NullString `json:"comment"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 type Service struct {
-	ID              pgtype.UUID        `json:"id"`
-	PerformerID     pgtype.UUID        `json:"performer_id"`
-	Title           string             `json:"title"`
-	Description     pgtype.Text        `json:"description"`
-	Price           pgtype.Numeric     `json:"price"`
-	DurationMinutes int32              `json:"duration_minutes"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	ID              uuid.UUID      `json:"id"`
+	PerformerID     uuid.UUID      `json:"performer_id"`
+	Title           string         `json:"title"`
+	Description     sql.NullString `json:"description"`
+	Price           string         `json:"price"`
+	DurationMinutes int32          `json:"duration_minutes"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 type User struct {
-	ID                 pgtype.UUID        `json:"id"`
+	ID                 uuid.UUID          `json:"id"`
 	Name               string             `json:"name"`
 	Email              string             `json:"email"`
-	PasswordHash       string             `json:"password_hash"`
+	PasswordHash       []byte             `json:"password_hash"`
 	Role               UserRole           `json:"role"`
 	Inn                string             `json:"inn"`
 	BusinessType       BusinessType       `json:"business_type"`
 	VerificationStatus VerificationStatus `json:"verification_status"`
-	CreatedAt          pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt          time.Time          `json:"created_at"`
+	UpdatedAt          time.Time          `json:"updated_at"`
 }

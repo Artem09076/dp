@@ -30,5 +30,28 @@ services:
         volumes:
         - ./migrations:/migrations
 
+    auth-service:
+        build:
+            context: ./backend/auth_service
+        container_name: auth-service
+        depends_on:
+            migrations:
+                condition: service_completed_successfully
+        ports:
+        - "50051:50051"
+        environment:
+            CONFIG_PATH: /app/config/config.yml
+        restart: unless-stopped
+
+    frontend:
+        build:
+            context: ./frontend
+        container_name: frontend
+        ports:
+            - "3000:80"
+        depends_on:
+            - auth-service
+        restart: unless-stopped
+
 volumes:
     database-data:

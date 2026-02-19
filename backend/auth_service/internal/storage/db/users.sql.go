@@ -26,7 +26,7 @@ RETURNING id, name, email, password_hash, role, inn, business_type, verification
 type CreateUserParams struct {
 	Name               string             `json:"name"`
 	Email              string             `json:"email"`
-	PasswordHash       string             `json:"password_hash"`
+	PasswordHash       []byte             `json:"password_hash"`
 	Role               UserRole           `json:"role"`
 	Inn                string             `json:"inn"`
 	BusinessType       BusinessType       `json:"business_type"`
@@ -34,7 +34,7 @@ type CreateUserParams struct {
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser,
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Name,
 		arg.Email,
 		arg.PasswordHash,
@@ -64,7 +64,7 @@ SELECT id, name, email, password_hash, role, inn, business_type, verification_st
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
