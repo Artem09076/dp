@@ -52,6 +52,19 @@ services:
         depends_on:
             - auth-service
         restart: unless-stopped
+    
+    core-service:
+        build:
+            context: ./backend/core_service
+        container_name: core-service
+        depends_on:
+            migrations:
+                condition: service_completed_successfully
+        ports:
+        - "8080:8080"
+        environment:
+            CONFIG_PATH: /app/config/config.yml
+        restart: unless-stopped
 
 volumes:
     database-data:
