@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS services (
     performer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    price NUMERIC(10, 2) NOT NULL,
+    price BIGINT NOT NULL,
     duration_minutes INT NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -56,9 +56,9 @@ CREATE TABLE IF NOT EXISTS bookings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
-    base_price NUMERIC(10, 2) NOT NULL,
+    base_price INT NOT NULL,
     discount_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
-    final_price NUMERIC(10, 2) NOT NULL,
+    final_price INT NOT NULL,
 
     booking_time TIMESTAMPTZ NOT NULL,
     status booking_status NOT NULL DEFAULT 'pending',

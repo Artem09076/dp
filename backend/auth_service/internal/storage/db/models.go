@@ -231,9 +231,9 @@ type Booking struct {
 	ID             uuid.UUID     `json:"id"`
 	ClientID       uuid.UUID     `json:"client_id"`
 	ServiceID      uuid.UUID     `json:"service_id"`
-	BasePrice      string        `json:"base_price"`
+	BasePrice      int32         `json:"base_price"`
 	DiscountAmount string        `json:"discount_amount"`
-	FinalPrice     string        `json:"final_price"`
+	FinalPrice     int32         `json:"final_price"`
 	BookingTime    time.Time     `json:"booking_time"`
 	Status         BookingStatus `json:"status"`
 	CreatedAt      time.Time     `json:"created_at"`
@@ -266,7 +266,7 @@ type Service struct {
 	PerformerID     uuid.UUID      `json:"performer_id"`
 	Title           string         `json:"title"`
 	Description     sql.NullString `json:"description"`
-	Price           string         `json:"price"`
+	Price           int64          `json:"price"`
 	DurationMinutes int32          `json:"duration_minutes"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`

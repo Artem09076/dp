@@ -43,8 +43,8 @@ func NewJWTMiddleware(log *slog.Logger, tokenValidator *jwt.JWTValidator) func(n
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			log.Info("asdf", slog.Any("claims", claims))
 			ctx := context.WithValue(r.Context(), "claims", claims)
+
 			entry := log.With(
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),

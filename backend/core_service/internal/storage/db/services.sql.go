@@ -24,7 +24,7 @@ type CreateServiceParams struct {
 	PerformerID     uuid.UUID      `json:"performer_id"`
 	Title           string         `json:"title"`
 	Description     sql.NullString `json:"description"`
-	Price           string         `json:"price"`
+	Price           int64          `json:"price"`
 	DurationMinutes int32          `json:"duration_minutes"`
 }
 

@@ -6,10 +6,13 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreateService(ctx context.Context, arg CreateServiceParams) (Service, error)
+	GetProfile(ctx context.Context, id uuid.UUID) (GetProfileRow, error)
 	ListServices(ctx context.Context) ([]Service, error)
 }
 
