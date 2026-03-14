@@ -7,10 +7,15 @@ import (
 
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/services/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
+	"github.com/google/uuid"
 )
 
 type ServiceRepository interface {
 	CreateService(ctx context.Context, arg sqlc.CreateServiceParams) (sqlc.Service, error)
+	SearchServices(ctx context.Context, arg sqlc.SearchServicesParams) ([]sqlc.Service, error)
+	GetService(ctx context.Context, id uuid.UUID) (sqlc.Service, error)
+	DeleteService(ctx context.Context, id uuid.UUID) error
+	UpdateService(ctx context.Context, arg sqlc.UpdateServiceParams) error
 }
 
 type Service struct {
@@ -44,4 +49,65 @@ func (s *Service) CreateService(ctx context.Context, createServiceObject dto.Cre
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (s *Service) SearchServices(ctx context.Context, query string, page int, limit int) ([]sqlc.Service, error) {
+	validQuery := sql.NullString{
+		String: query,
+		Valid:  query != "",
+	}
+	param := sqlc.SearchServicesParams{
+		Column1: validQuery,
+		Limit:   int32(limit),
+		Offset:  int32((page - 1) * limit),
+	}
+	res, err := s.repo.SearchServices(ctx, param)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (s *Service) GetService(ctx context.Context, serviceID uuid.UUID) (*sqlc.Service, error) {
+	res, err := s.repo.GetService(ctx, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (s *Service) DeleteService(ctx context.Context, serviceID uuid.UUID) error {
+	return s.repo.DeleteService(ctx, serviceID)
+}
+
+func (s *Service) UpdateService(ctx context.Context, serviceID uuid.UUID, updateServiceObject dto.PatchServiceRequest) error {
+	service, err := s.repo.GetService(ctx, serviceID)
+	if err != nil {
+		return err
+	}
+	arg := sqlc.UpdateServiceParams{
+		ID:              serviceID,
+		Title:           service.Title,
+		Description:     service.Description,
+		Price:           service.Price,
+		DurationMinutes: service.DurationMinutes,
+	}
+	if updateServiceObject.Title != nil {
+		arg.Title = *updateServiceObject.Title
+	}
+	if updateServiceObject.Description != nil {
+		arg.Description = sql.NullString{String: *updateServiceObject.Description, Valid: true}
+	}
+	if updateServiceObject.Price != nil {
+		arg.Price = int64(*updateServiceObject.Price)
+	}
+	if updateServiceObject.DurationMinutes != nil {
+		arg.DurationMinutes = int32(*updateServiceObject.DurationMinutes)
+	}
+	err = s.repo.UpdateService(ctx, arg)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }

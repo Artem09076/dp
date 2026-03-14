@@ -11,7 +11,8 @@ import (
 
 type Auth interface {
 	Register(ctx context.Context, email string, name string, inn string, business_type string, role string, password string) (string, error)
-	Login(ctx context.Context, email string, password string) (string, error)
+	Login1(ctx context.Context, email string, password string) (string, error)
+	Login2(ctx context.Context, inn string, password string) (string, error)
 }
 
 type AuthServer struct {
@@ -36,12 +37,22 @@ func (s *AuthServer) Register(ctx context.Context, req *auth1.RegisterRequest) (
 }
 
 func (s *AuthServer) Login(ctx context.Context, req *auth1.LoginRequest) (*auth1.AuthResponse, error) {
-	if req.GetEmail() == "" || req.GetPassword() == "" {
-		return nil, status.Error(codes.InvalidArgument, "email and password are required")
+	if req.GetPassword() == "" {
+		return nil, status.Error(codes.InvalidArgument, "password are required")
 	}
-	accessToken, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword())
+	var accessToken string
+	var err error
+	if req.GetInn() == "" && req.GetEmail() != "" {
+		accessToken, err = s.auth.Login1(ctx, req.GetEmail(), req.GetPassword())
+	}
+	if req.GetInn() != "" && req.GetEmail() == "" {
+		accessToken, err = s.auth.Login2(ctx, req.GetInn(), req.GetPassword())
+	}
+	if req.GetInn() == "" && req.GetEmail() == "" {
+		return nil, status.Error(codes.InvalidArgument, "email or inn number are required")
+	}
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to login")
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &auth1.AuthResponse{AccessToken: accessToken}, nil
 }

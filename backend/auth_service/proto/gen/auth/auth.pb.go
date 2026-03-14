@@ -108,7 +108,8 @@ func (x *RegisterRequest) GetUserRole() string {
 type LoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Inn           string                 `protobuf:"bytes,2,opt,name=inn,proto3" json:"inn,omitempty"`
+	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -146,6 +147,13 @@ func (*LoginRequest) Descriptor() ([]byte, []int) {
 func (x *LoginRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetInn() string {
+	if x != nil {
+		return x.Inn
 	}
 	return ""
 }
@@ -212,10 +220,11 @@ const file_proto_auth_proto_rawDesc = "" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x10\n" +
 	"\x03inn\x18\x04 \x01(\tR\x03inn\x12\"\n" +
 	"\fbusinessType\x18\x05 \x01(\tR\fbusinessType\x12\x1a\n" +
-	"\buserRole\x18\x06 \x01(\tR\buserRole\"@\n" +
+	"\buserRole\x18\x06 \x01(\tR\buserRole\"R\n" +
 	"\fLoginRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"0\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x10\n" +
+	"\x03inn\x18\x02 \x01(\tR\x03inn\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"0\n" +
 	"\fAuthResponse\x12 \n" +
 	"\vaccessToken\x18\x01 \x01(\tR\vaccessToken2u\n" +
 	"\vAuthService\x125\n" +

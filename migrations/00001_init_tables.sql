@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL UNIQUE,
     password_hash BYTEA NOT NULL,
     role user_role NOT NULL,
-    inn VARCHAR(12) NOT NULL UNIQUE,
+    inn VARCHAR(12) UNIQUE,
     business_type business_type NOT NULL,
     verification_status verification_status NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

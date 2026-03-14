@@ -7,9 +7,20 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
+
+const deleteProfile = `-- name: DeleteProfile :exec
+DELETE FROM users
+WHERE id = $1
+`
+
+func (q *Queries) DeleteProfile(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteProfile, id)
+	return err
+}
 
 const getProfile = `-- name: GetProfile :one
 SELECT 
@@ -27,7 +38,7 @@ type GetProfileRow struct {
 	Name               string             `json:"name"`
 	Email              string             `json:"email"`
 	Role               UserRole           `json:"role"`
-	Inn                string             `json:"inn"`
+	Inn                sql.NullString     `json:"inn"`
 	BusinessType       BusinessType       `json:"business_type"`
 	VerificationStatus VerificationStatus `json:"verification_status"`
 }
@@ -44,4 +55,21 @@ func (q *Queries) GetProfile(ctx context.Context, id uuid.UUID) (GetProfileRow, 
 		&i.VerificationStatus,
 	)
 	return i, err
+}
+
+const updateProfile = `-- name: UpdateProfile :exec
+UPDATE users 
+SET email = $1, name = $2
+WHERE id = $3
+`
+
+type UpdateProfileParams struct {
+	Email string    `json:"email"`
+	Name  string    `json:"name"`
+	ID    uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) error {
+	_, err := q.db.ExecContext(ctx, updateProfile, arg.Email, arg.Name, arg.ID)
+	return err
 }

@@ -19,7 +19,8 @@ message RegisterRequest {
 
 message LoginRequest {
   string email = 1;
-  string password = 2;
+  string inn = 2;
+  string password = 3;
 }
 
 message AuthResponse {

@@ -6,11 +6,13 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByInn(ctx context.Context, inn sql.NullString) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

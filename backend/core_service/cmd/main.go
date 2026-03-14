@@ -14,14 +14,13 @@ import (
 	"github.com/Artem09076/dp/backend/core_service/internal/config"
 	"github.com/Artem09076/dp/backend/core_service/internal/lib/jwt"
 	"github.com/Artem09076/dp/backend/core_service/internal/logger"
-	jwtmiddleware "github.com/Artem09076/dp/backend/core_service/internal/presentation/middleware"
+	coremiddleware "github.com/Artem09076/dp/backend/core_service/internal/presentation/middleware"
 	profilehandlers "github.com/Artem09076/dp/backend/core_service/internal/presentation/profile/handlers"
 	servicehandlers "github.com/Artem09076/dp/backend/core_service/internal/presentation/services/handlers"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/go-chi/chi/middleware"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	_ "github.com/lib/pq"
 )
 
@@ -52,13 +51,20 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Group(func(r chi.Router) {
-		r.Use(jwtmiddleware.NewJWTMiddleware(log, validator))
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			log.Info("GET /")
-			render.JSON(w, r, "asdf")
-		})
+		r.Use(coremiddleware.NewJWTMiddleware(log, validator))
 		r.Get("/api/v1/profile", profileHandlers.GetProfile())
+		r.Patch("/api/v1/profile", profileHandlers.PatchProfile())
+		r.Delete("/api/v1/profile", profileHandlers.DeleteProfile())
+		r.Get("/api/v1/services", serviceHandlers.SearchServices())
+		r.Get("/api/v1/services/{id}", serviceHandlers.GetService())
+	})
+
+	router.Group(func(r chi.Router) {
+		r.Use(coremiddleware.NewJWTMiddleware(log, validator))
+		r.Use(coremiddleware.NewRoleMiddleware(log))
 		r.Post("/api/v1/services", serviceHandlers.CreateService())
+		r.Patch("/api/v1/services/{id}", serviceHandlers.PatchService())
+		r.Delete("/api/v1/services/{id}", serviceHandlers.DeleteService())
 	})
 
 	done := make(chan os.Signal, 1)

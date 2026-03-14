@@ -9,3 +9,10 @@ type CreateServiceRequest struct {
 	Price           int       `json:"price"`
 	DurationMinutes int       `json:"duration_minutes"`
 }
+
+type PatchServiceRequest struct {
+	Title           *string `json:"title,omitempty"`
+	Description     *string `json:"description,omitempty"`
+	Price           *int    `json:"price,omitempty"`
+	DurationMinutes *int    `json:"duration_minutes,omitempty"`
+}

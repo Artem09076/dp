@@ -278,7 +278,7 @@ type User struct {
 	Email              string             `json:"email"`
 	PasswordHash       []byte             `json:"password_hash"`
 	Role               UserRole           `json:"role"`
-	Inn                string             `json:"inn"`
+	Inn                sql.NullString     `json:"inn"`
 	BusinessType       BusinessType       `json:"business_type"`
 	VerificationStatus VerificationStatus `json:"verification_status"`
 	CreatedAt          time.Time          `json:"created_at"`

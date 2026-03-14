@@ -50,6 +50,35 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 	return i, err
 }
 
+const deleteService = `-- name: DeleteService :exec
+DELETE FROM services WHERE id = $1
+`
+
+func (q *Queries) DeleteService(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteService, id)
+	return err
+}
+
+const getService = `-- name: GetService :one
+SELECT id, performer_id, title, description, price, duration_minutes, created_at, updated_at FROM services WHERE id = $1
+`
+
+func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error) {
+	row := q.db.QueryRowContext(ctx, getService, id)
+	var i Service
+	err := row.Scan(
+		&i.ID,
+		&i.PerformerID,
+		&i.Title,
+		&i.Description,
+		&i.Price,
+		&i.DurationMinutes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listServices = `-- name: ListServices :many
 SELECT id, performer_id, title, description, price, duration_minutes, created_at, updated_at FROM services
 `
@@ -84,4 +113,78 @@ func (q *Queries) ListServices(ctx context.Context) ([]Service, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const searchServices = `-- name: SearchServices :many
+SELECT id, performer_id, title, description, price, duration_minutes, created_at, updated_at FROM services
+WHERE title ILIKE '%' || $1 || '%'
+   OR description ILIKE '%' || $1 || '%'
+LIMIT $2 OFFSET $3
+`
+
+type SearchServicesParams struct {
+	Column1 sql.NullString `json:"column_1"`
+	Limit   int32          `json:"limit"`
+	Offset  int32          `json:"offset"`
+}
+
+func (q *Queries) SearchServices(ctx context.Context, arg SearchServicesParams) ([]Service, error) {
+	rows, err := q.db.QueryContext(ctx, searchServices, arg.Column1, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Service{}
+	for rows.Next() {
+		var i Service
+		if err := rows.Scan(
+			&i.ID,
+			&i.PerformerID,
+			&i.Title,
+			&i.Description,
+			&i.Price,
+			&i.DurationMinutes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateService = `-- name: UpdateService :exec
+UPDATE services
+SET
+    title = COALESCE($2, title),
+    description = COALESCE($3, description),
+    price = COALESCE($4, price),
+    duration_minutes = COALESCE($5, duration_minutes)
+WHERE id = $1
+`
+
+type UpdateServiceParams struct {
+	ID              uuid.UUID      `json:"id"`
+	Title           string         `json:"title"`
+	Description     sql.NullString `json:"description"`
+	Price           int64          `json:"price"`
+	DurationMinutes int32          `json:"duration_minutes"`
+}
+
+func (q *Queries) UpdateService(ctx context.Context, arg UpdateServiceParams) error {
+	_, err := q.db.ExecContext(ctx, updateService,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.Price,
+		arg.DurationMinutes,
+	)
+	return err
 }

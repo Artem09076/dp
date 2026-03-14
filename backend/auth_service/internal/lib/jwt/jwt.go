@@ -14,6 +14,8 @@ func NewToken(user sqlc.User, secretKey []byte, ttl time.Duration) (string, erro
 	claims := token.Claims.(jwt.MapClaims)
 	claims["user_id"] = user.ID
 	claims["email"] = user.Email
+	claims["role"] = user.Role
+	claims["verification_status"] = user.VerificationStatus
 	claims["exp"] = time.Now().Add(ttl).Unix()
 
 	tokenString, err := token.SignedString(secretKey)

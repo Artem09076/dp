@@ -12,8 +12,14 @@ import (
 
 type Querier interface {
 	CreateService(ctx context.Context, arg CreateServiceParams) (Service, error)
+	DeleteProfile(ctx context.Context, id uuid.UUID) error
+	DeleteService(ctx context.Context, id uuid.UUID) error
 	GetProfile(ctx context.Context, id uuid.UUID) (GetProfileRow, error)
+	GetService(ctx context.Context, id uuid.UUID) (Service, error)
 	ListServices(ctx context.Context) ([]Service, error)
+	SearchServices(ctx context.Context, arg SearchServicesParams) ([]Service, error)
+	UpdateProfile(ctx context.Context, arg UpdateProfileParams) error
+	UpdateService(ctx context.Context, arg UpdateServiceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

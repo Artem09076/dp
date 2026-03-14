@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -28,7 +29,7 @@ type CreateUserParams struct {
 	Email              string             `json:"email"`
 	PasswordHash       []byte             `json:"password_hash"`
 	Role               UserRole           `json:"role"`
-	Inn                string             `json:"inn"`
+	Inn                sql.NullString     `json:"inn"`
 	BusinessType       BusinessType       `json:"business_type"`
 	VerificationStatus VerificationStatus `json:"verification_status"`
 }
@@ -65,6 +66,28 @@ SELECT id, name, email, password_hash, role, inn, business_type, verification_st
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Role,
+		&i.Inn,
+		&i.BusinessType,
+		&i.VerificationStatus,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByInn = `-- name: GetUserByInn :one
+SELECT id, name, email, password_hash, role, inn, business_type, verification_status, created_at, updated_at FROM users u WHERE u.inn = $1
+`
+
+func (q *Queries) GetUserByInn(ctx context.Context, inn sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByInn, inn)
 	var i User
 	err := row.Scan(
 		&i.ID,
