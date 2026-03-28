@@ -39,7 +39,7 @@ type GetProfileRow struct {
 	Email              string             `json:"email"`
 	Role               UserRole           `json:"role"`
 	Inn                sql.NullString     `json:"inn"`
-	BusinessType       BusinessType       `json:"business_type"`
+	BusinessType       NullBusinessType   `json:"business_type"`
 	VerificationStatus VerificationStatus `json:"verification_status"`
 }
 

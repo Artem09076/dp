@@ -60,11 +60,55 @@ services:
         depends_on:
             migrations:
                 condition: service_completed_successfully
+            rabbitmq:
+                condition: service_healthy
         ports:
         - "8080:8080"
         environment:
             CONFIG_PATH: /app/config/config.yml
         restart: unless-stopped
+    
+    notifcation-service:
+        build:
+            context: ./backend/notification_service
+        container_name: notifcation-service
+        depends_on:
+            migrations:
+                condition: service_completed_successfully
+            rabbitmq:
+                condition: service_healthy
+        ports:
+        - "8082:8082"
+        environment:
+            CONFIG_PATH: /app/config/config.yml
+        restart: unless-stopped
 
+    booking-service:
+        build:
+            context: ./backend/booking_service
+        container_name: booking-service
+        depends_on:
+            migrations:
+                condition: service_completed_successfully
+            rabbitmq:
+                condition: service_healthy
+        ports:
+        - "8081:8081"
+        environment:
+            CONFIG_PATH: /app/config/config.yml
+        restart: unless-stopped
+
+
+
+    rabbitmq:
+        image: rabbitmq:3.13.7-management
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        healthcheck:
+            test: rabbitmq-diagnostics -q ping
+            interval: 30s
+            timeout: 30s
+            retries: 3
 volumes:
     database-data:

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash BYTEA NOT NULL,
     role user_role NOT NULL,
     inn VARCHAR(12) UNIQUE,
-    business_type business_type NOT NULL,
+    business_type business_type ,
     verification_status verification_status NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS discounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
     type discoutn_type NOT NULL,
-    value NUMERIC(10, 2) NOT NULL,
+    value INT NOT NULL,
 
 
     valid_from TIMESTAMPTZ NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
     base_price INT NOT NULL,
-    discount_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    discount_id UUID REFERENCES discounts(id) ON DELETE SET NULL,
     final_price INT NOT NULL,
 
     booking_time TIMESTAMPTZ NOT NULL,

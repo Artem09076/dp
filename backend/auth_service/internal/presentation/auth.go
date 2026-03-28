@@ -50,15 +50,21 @@ func (a *Auth) Register(ctx context.Context, email string, name string, inn stri
 		String: inn,
 		Valid:  inn != "",
 	}
+	var verificationStatus string
+	if validUserRole.UserRole == "performer" {
+		verificationStatus = "pending"
+	} else {
+		verificationStatus = "verified"
+	}
 
 	user, err := a.queries.CreateUser(ctx, sqlc.CreateUserParams{
 		Email:              email,
 		Name:               name,
 		Inn:                validInn,
-		BusinessType:       validBusinessTypes.BusinessType,
+		BusinessType:       validBusinessTypes,
 		Role:               validUserRole.UserRole,
 		PasswordHash:       passwordHash,
-		VerificationStatus: "pending",
+		VerificationStatus: sqlc.VerificationStatus(verificationStatus),
 	})
 
 	if err != nil {
@@ -95,7 +101,7 @@ func (a *Auth) Login1(ctx context.Context, email string, password string) (strin
 }
 
 func (a *Auth) Login2(ctx context.Context, inn string, password string) (string, error) {
-	op := "auth.Auth.Login1"
+	op := "auth.Auth.Login2"
 	log := a.log.With("op", op)
 	validInn := sql.NullString{
 		String: inn,

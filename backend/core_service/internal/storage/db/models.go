@@ -228,23 +228,23 @@ func (ns NullVerificationStatus) Value() (driver.Value, error) {
 }
 
 type Booking struct {
-	ID             uuid.UUID     `json:"id"`
-	ClientID       uuid.UUID     `json:"client_id"`
-	ServiceID      uuid.UUID     `json:"service_id"`
-	BasePrice      int32         `json:"base_price"`
-	DiscountAmount string        `json:"discount_amount"`
-	FinalPrice     int32         `json:"final_price"`
-	BookingTime    time.Time     `json:"booking_time"`
-	Status         BookingStatus `json:"status"`
-	CreatedAt      time.Time     `json:"created_at"`
-	UpdatedAt      time.Time     `json:"updated_at"`
+	ID          uuid.UUID     `json:"id"`
+	ClientID    uuid.UUID     `json:"client_id"`
+	ServiceID   uuid.UUID     `json:"service_id"`
+	BasePrice   int32         `json:"base_price"`
+	DiscountID  uuid.NullUUID `json:"discount_id"`
+	FinalPrice  int32         `json:"final_price"`
+	BookingTime time.Time     `json:"booking_time"`
+	Status      BookingStatus `json:"status"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
 }
 
 type Discount struct {
 	ID        uuid.UUID    `json:"id"`
 	ServiceID uuid.UUID    `json:"service_id"`
 	Type      DiscoutnType `json:"type"`
-	Value     string       `json:"value"`
+	Value     int32        `json:"value"`
 	ValidFrom time.Time    `json:"valid_from"`
 	ValidTo   time.Time    `json:"valid_to"`
 	MaxUses   int32        `json:"max_uses"`
@@ -279,7 +279,7 @@ type User struct {
 	PasswordHash       []byte             `json:"password_hash"`
 	Role               UserRole           `json:"role"`
 	Inn                sql.NullString     `json:"inn"`
-	BusinessType       BusinessType       `json:"business_type"`
+	BusinessType       NullBusinessType   `json:"business_type"`
 	VerificationStatus VerificationStatus `json:"verification_status"`
 	CreatedAt          time.Time          `json:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at"`
