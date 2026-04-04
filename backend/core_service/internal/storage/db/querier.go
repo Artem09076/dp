@@ -11,14 +11,26 @@ import (
 )
 
 type Querier interface {
+	CreateDiscount(ctx context.Context, arg CreateDiscountParams) (Discount, error)
+	CreateReview(ctx context.Context, arg CreateReviewParams) (Review, error)
 	CreateService(ctx context.Context, arg CreateServiceParams) (Service, error)
+	DeleteDiscount(ctx context.Context, id uuid.UUID) error
 	DeleteProfile(ctx context.Context, id uuid.UUID) error
+	DeleteReview(ctx context.Context, id uuid.UUID) error
 	DeleteService(ctx context.Context, id uuid.UUID) error
+	GetBookingByID(ctx context.Context, id uuid.UUID) (GetBookingByIDRow, error)
+	GetDiscountById(ctx context.Context, id uuid.UUID) (Discount, error)
 	GetProfile(ctx context.Context, id uuid.UUID) (GetProfileRow, error)
+	GetReviewByBookingID(ctx context.Context, bookingID uuid.UUID) (Review, error)
+	GetReviewByID(ctx context.Context, id uuid.UUID) (Review, error)
+	GetReviewsByServiceID(ctx context.Context, arg GetReviewsByServiceIDParams) ([]Review, error)
 	GetService(ctx context.Context, id uuid.UUID) (Service, error)
 	ListServices(ctx context.Context) ([]Service, error)
 	SearchServices(ctx context.Context, arg SearchServicesParams) ([]Service, error)
+	UpdateDiscount(ctx context.Context, arg UpdateDiscountParams) error
 	UpdateProfile(ctx context.Context, arg UpdateProfileParams) error
+	UpdateProfileVerificationStatus(ctx context.Context, arg UpdateProfileVerificationStatusParams) error
+	UpdateReview(ctx context.Context, arg UpdateReviewParams) error
 	UpdateService(ctx context.Context, arg UpdateServiceParams) error
 }
 

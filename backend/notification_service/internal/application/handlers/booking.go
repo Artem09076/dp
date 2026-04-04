@@ -10,6 +10,8 @@ import (
 	"github.com/Artem09076/dp/backend/notification_service/internal/domain"
 )
 
+// TODO: вынести в отдельные методы формирование тела письма для каждого типа события
+
 type BookingHandler struct {
 	emailSender domain.EmailSender
 	log         *slog.Logger
@@ -88,4 +90,40 @@ func (h *BookingHandler) HandleSubmited(msg dto.BookingEvent) error {
 		Body:    body,
 		Retries: 2,
 	})
+}
+
+func (h *BookingHandler) HandleUpdate1(msg dto.BookingEvent) error {
+	subject := "Услуга была обновлена"
+	body := fmt.Sprintf(`
+	Время вашей услуши была обновлена
+	Услуга: %s
+	Дата: %s
+	Если новое время вас не устраивает, свяжитесь с представителем услиги или отмените бронь
+	`, msg.Service, msg.Time)
+	h.log.Info("sadfghjk")
+	return h.emailSender.Send(context.Background(), domain.Email{
+		To:      msg.Email,
+		Subject: subject,
+		Body:    body,
+		Retries: 2,
+	})
+
+}
+
+func (h *BookingHandler) HandleUpdate2(msg dto.BookingEvent) error {
+	subject := "Услуга была обновлена"
+	body := fmt.Sprintf(`
+	Время вашей услуши была обновлена
+	Услуга: %s
+	Дата: %s
+	Если новое время вас устраивает, подтвердите новое время брони
+	`, msg.Service, msg.Time)
+	h.log.Info("sadfghjk")
+	return h.emailSender.Send(context.Background(), domain.Email{
+		To:      msg.Email,
+		Subject: subject,
+		Body:    body,
+		Retries: 2,
+	})
+
 }

@@ -46,3 +46,33 @@ SELECT b.id, b.booking_time, s.duration_minutes from bookings b
 JOIN services s ON s.id = b.service_id
 WHERE b.service_id = $1 AND b.status IN ('pending', 'confirmed')
 FOR UPDATE;
+
+
+-- name: UpdateBookingTime1 :exec
+UPDATE bookings
+SET booking_time = $1, updated_at = NOW()
+WHERE id = $2;
+
+-- name: UpdateBookingTime2 :exec
+UPDATE bookings
+SET booking_time = $1,
+    status = 'pending',
+    updated_at = NOW()
+WHERE id = $2;
+
+
+-- name: GetBookingByClientID :many
+SELECT * FROM bookings WHERE client_id = $1;
+
+-- name: GetBookingByPerformerID :many
+SELECT b.* FROM bookings b
+JOIN services s ON s.id = b.service_id
+WHERE s.performer_id = $1;
+
+-- name: ServiceExists :one
+SELECT EXISTS (SELECT * FROM services WHERE id = $1);
+
+-- name: IncreaseDiscountUsage :exec
+UPDATE discounts
+SET used_count = used_count + 1
+WHERE id = $1;

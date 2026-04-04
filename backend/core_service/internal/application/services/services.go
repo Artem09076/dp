@@ -16,6 +16,7 @@ type ServiceRepository interface {
 	GetService(ctx context.Context, id uuid.UUID) (sqlc.Service, error)
 	DeleteService(ctx context.Context, id uuid.UUID) error
 	UpdateService(ctx context.Context, arg sqlc.UpdateServiceParams) error
+	GetProfile(ctx context.Context, id uuid.UUID) (sqlc.GetProfileRow, error)
 }
 
 type Service struct {
@@ -30,7 +31,24 @@ func NewService(repo ServiceRepository, log *slog.Logger) *Service {
 	}
 }
 
+func (s *Service) CheckServiceOwnership(ctx context.Context, userID uuid.UUID, serviceID uuid.UUID) (bool, error) {
+	service, err := s.repo.GetService(ctx, serviceID)
+	if err != nil {
+		s.log.Error("Failed to get service", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
+		return false, err
+	}
+	return service.PerformerID == userID, nil
+}
+
 func (s *Service) CreateService(ctx context.Context, createServiceObject dto.CreateServiceRequest) (*sqlc.Service, error) {
+	performer, err := s.repo.GetProfile(ctx, createServiceObject.PerformerID)
+	if err != nil {
+		return nil, err
+	}
+	if performer.VerificationStatus != "verified" {
+		return nil, err
+		// Нормально распиши
+	}
 	var NullDescription sql.NullString
 	if createServiceObject.Description == "" {
 		NullDescription = sql.NullString{String: createServiceObject.Description, Valid: false}

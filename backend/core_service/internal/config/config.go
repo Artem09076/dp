@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	Env      string        `yaml:"env" env-required:"true"`
-	DBPath   string        `yaml:"db_path" env-required:"true"`
-	HTTP     HTTPConfig    `yaml:"http"`
-	TokenTTL time.Duration `yaml:"token_ttl" env-required:"true"`
+	Env        string        `yaml:"env" env-required:"true"`
+	DBPath     string        `yaml:"db_path" env-required:"true"`
+	RabbitPath string        `yaml:"rabbit_url" env-required:"true"`
+	HTTP       HTTPConfig    `yaml:"http"`
+	TokenTTL   time.Duration `yaml:"token_ttl" env-required:"true"`
 }
 
 type HTTPConfig struct {

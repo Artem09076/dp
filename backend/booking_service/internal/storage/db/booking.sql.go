@@ -83,6 +83,44 @@ func (q *Queries) GetBooking(ctx context.Context, id uuid.UUID) (Booking, error)
 	return i, err
 }
 
+const getBookingByClientID = `-- name: GetBookingByClientID :many
+SELECT id, client_id, service_id, base_price, discount_id, final_price, booking_time, status, created_at, updated_at FROM bookings WHERE client_id = $1
+`
+
+func (q *Queries) GetBookingByClientID(ctx context.Context, clientID uuid.UUID) ([]Booking, error) {
+	rows, err := q.db.QueryContext(ctx, getBookingByClientID, clientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Booking{}
+	for rows.Next() {
+		var i Booking
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClientID,
+			&i.ServiceID,
+			&i.BasePrice,
+			&i.DiscountID,
+			&i.FinalPrice,
+			&i.BookingTime,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBookingByID = `-- name: GetBookingByID :one
 SELECT b.id, b.client_id, b.service_id, b.base_price, b.discount_id, b.final_price, b.booking_time, b.status, b.created_at, b.updated_at, s.title AS service_title, s.performer_id, d.type AS discount_type, d.value AS discount_value
 FROM bookings b
@@ -128,6 +166,46 @@ func (q *Queries) GetBookingByID(ctx context.Context, id uuid.UUID) (GetBookingB
 		&i.DiscountValue,
 	)
 	return i, err
+}
+
+const getBookingByPerformerID = `-- name: GetBookingByPerformerID :many
+SELECT b.id, b.client_id, b.service_id, b.base_price, b.discount_id, b.final_price, b.booking_time, b.status, b.created_at, b.updated_at FROM bookings b
+JOIN services s ON s.id = b.service_id
+WHERE s.performer_id = $1
+`
+
+func (q *Queries) GetBookingByPerformerID(ctx context.Context, performerID uuid.UUID) ([]Booking, error) {
+	rows, err := q.db.QueryContext(ctx, getBookingByPerformerID, performerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Booking{}
+	for rows.Next() {
+		var i Booking
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClientID,
+			&i.ServiceID,
+			&i.BasePrice,
+			&i.DiscountID,
+			&i.FinalPrice,
+			&i.BookingTime,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getBookingsForUpdate = `-- name: GetBookingsForUpdate :many
@@ -229,6 +307,28 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
+const increaseDiscountUsage = `-- name: IncreaseDiscountUsage :exec
+UPDATE discounts
+SET used_count = used_count + 1
+WHERE id = $1
+`
+
+func (q *Queries) IncreaseDiscountUsage(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, increaseDiscountUsage, id)
+	return err
+}
+
+const serviceExists = `-- name: ServiceExists :one
+SELECT EXISTS (SELECT id, performer_id, title, description, price, duration_minutes, created_at, updated_at FROM services WHERE id = $1)
+`
+
+func (q *Queries) ServiceExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, serviceExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const submitBooking = `-- name: SubmitBooking :exec
 UPDATE bookings
 SET status = 'confirmed', updated_at = NOW()
@@ -237,5 +337,39 @@ WHERE id = $1
 
 func (q *Queries) SubmitBooking(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, submitBooking, id)
+	return err
+}
+
+const updateBookingTime1 = `-- name: UpdateBookingTime1 :exec
+UPDATE bookings
+SET booking_time = $1, updated_at = NOW()
+WHERE id = $2
+`
+
+type UpdateBookingTime1Params struct {
+	BookingTime time.Time `json:"booking_time"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateBookingTime1(ctx context.Context, arg UpdateBookingTime1Params) error {
+	_, err := q.db.ExecContext(ctx, updateBookingTime1, arg.BookingTime, arg.ID)
+	return err
+}
+
+const updateBookingTime2 = `-- name: UpdateBookingTime2 :exec
+UPDATE bookings
+SET booking_time = $1,
+    status = 'pending',
+    updated_at = NOW()
+WHERE id = $2
+`
+
+type UpdateBookingTime2Params struct {
+	BookingTime time.Time `json:"booking_time"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateBookingTime2(ctx context.Context, arg UpdateBookingTime2Params) error {
+	_, err := q.db.ExecContext(ctx, updateBookingTime2, arg.BookingTime, arg.ID)
 	return err
 }

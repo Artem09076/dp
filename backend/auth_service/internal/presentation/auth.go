@@ -32,18 +32,24 @@ func (a *Auth) Register(ctx context.Context, email string, name string, inn stri
 	log := a.log.With("op", op)
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Error("failed to hash password", "error", err)
+		a.log.Error("failed to hash password", "error", err)
 		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
-	validBusinessTypes := sqlc.NullBusinessType{}
-	err = validBusinessTypes.Scan(business_type)
-	if err != nil {
-		log.Error("failed to scan business type", "error", err)
-		return "", fmt.Errorf("failed to scan business type: %w", err)
+	var validBusinessTypes sqlc.NullBusinessType
+	if business_type != "" {
+		validBusinessTypes = sqlc.NullBusinessType{}
+		err = validBusinessTypes.Scan(business_type)
+		if err != nil {
+			a.log.Error("failed to scan business type", "error", err)
+			return "", fmt.Errorf("failed to scan business type: %w", err)
+		}
+	} else {
+		validBusinessTypes = sqlc.NullBusinessType{Valid: false}
 	}
+
 	validUserRole := sqlc.NullUserRole{}
 	if err := validUserRole.Scan(role); err != nil {
-		log.Error("Failed to scan user role", "error", err)
+		a.log.Error("Failed to scan user role", "error", err)
 		return "", fmt.Errorf("failed to scan user role: %w", err)
 	}
 	validInn := sql.NullString{
@@ -71,6 +77,7 @@ func (a *Auth) Register(ctx context.Context, email string, name string, inn stri
 		log.Error("failed to create user", "error", err)
 		return "", fmt.Errorf("failed to create user: %w", err)
 	}
+
 	token, err := jwt.NewToken(user, []byte("secret"), a.tokenTTL)
 	if err != nil {
 		log.Error("failed to create token", "error", err)

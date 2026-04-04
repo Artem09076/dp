@@ -37,8 +37,17 @@ func main() {
 
 	consumer := rabbit.NewConsumer(ch, log)
 	handler := handlers.NewBookingHandler(log, emailSender)
-	log.Info("Starting consume")
+	log.Info("Starting consume booking_queue")
 	if err := consumer.Consume("booking_queue", handler.Handle); err != nil {
+		log.Error("failed to start consumer", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	ch.QueueDeclare("profile_queue", true, false, false, false, nil)
+
+	profileHandler := handlers.NewProfileHandler(log, emailSender)
+	log.Info("Starting consume profile_queue")
+	if err := consumer.Consume("profile_queue", profileHandler.Handle); err != nil {
 		log.Error("failed to start consumer", slog.String("error", err.Error()))
 		os.Exit(1)
 	}

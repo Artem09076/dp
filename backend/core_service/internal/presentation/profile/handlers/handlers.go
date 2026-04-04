@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 
+	handlerlib "github.com/Artem09076/dp/backend/core_service/internal/lib/api/handler"
 	"github.com/Artem09076/dp/backend/core_service/internal/lib/api/response"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/profile/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/go-chi/render"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -18,6 +18,7 @@ type ProfileService interface {
 	GetProfile(ctx context.Context, userID uuid.UUID) (*sqlc.GetProfileRow, error)
 	UpdateProfile(ctx context.Context, userID uuid.UUID, updateProfileObject dto.PatchProfileRequest) error
 	DeleteProfile(ctx context.Context, userID uuid.UUID) error
+	UpdateVerificationStatus(ctx context.Context, userID uuid.UUID, verificationStatus string) error
 }
 
 type ProfileHandler struct {
@@ -36,18 +37,11 @@ func (h *ProfileHandler) GetProfile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "profile.handlers.GetProfile"
 		log := h.log.With(slog.String("op", op))
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
-			return
-		}
-		userID, err := uuid.Parse((*claims)["user_id"].(string))
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error("Failed to parse user_id")
+			log.Error(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid user_id"))
+			render.JSON(w, r, response.Error(err.Error()))
 			return
 		}
 		profile, err := h.profileService.GetProfile(r.Context(), userID)
@@ -69,18 +63,11 @@ func (h *ProfileHandler) PatchProfile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "profile.handlers.PatchProfile"
 		log := h.log.With(slog.String("op", op))
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
-			return
-		}
-		userID, err := uuid.Parse((*claims)["user_id"].(string))
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error("Failed to parse user_id")
+			log.Error(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid user_id"))
+			render.JSON(w, r, response.Error(err.Error()))
 			return
 		}
 
@@ -112,22 +99,13 @@ func (h *ProfileHandler) DeleteProfile() http.HandlerFunc {
 			slog.String("op", op),
 		)
 
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
-			return
-		}
-
-		userID, err := uuid.Parse((*claims)["user_id"].(string))
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error("Failed to parse user_id")
+			log.Error(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid user_id"))
+			render.JSON(w, r, response.Error(err.Error()))
 			return
 		}
-
 		err = h.profileService.DeleteProfile(r.Context(), userID)
 		if err != nil {
 			log.Error("failed to delete profile",
@@ -140,6 +118,35 @@ func (h *ProfileHandler) DeleteProfile() http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+}
+
+func (h *ProfileHandler) UpdateVerificationStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const op = "profile.handlers.UpdateVerificationStatus"
+
+		log := h.log.With(
+			slog.String("op", op),
+		)
+		w.Header().Set("Content-Type", "application/json")
+
+		var body dto.UpdateVerificationStatusRequest
+
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "can't decode JSON body", http.StatusBadRequest)
+			return
+		}
+
+		err := h.profileService.UpdateVerificationStatus(r.Context(), body.UserID, body.VerificationStatus)
+		if err != nil {
+			log.Error("internal server error", slog.String("Error", err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("internal server error"))
+			return
+		}
 
 		w.WriteHeader(http.StatusNoContent)
 		return

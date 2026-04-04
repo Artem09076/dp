@@ -43,7 +43,24 @@ func NewJWTMiddleware(log *slog.Logger, tokenValidator *jwt.JWTValidator) func(n
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			ctx := context.WithValue(r.Context(), "claims", claims)
+
+			userID, ok := (*claims)["user_id"].(string)
+			if !ok {
+				log.Info("user_id not found in token claims")
+				render.JSON(w, r, response.Error("Invalid token claims"))
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			role, ok := (*claims)["role"].(string)
+			if !ok {
+				log.Info("user_id not found in token claims")
+				render.JSON(w, r, response.Error("Invalid token claims"))
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), "user_id", userID)
+			ctx = context.WithValue(ctx, "role", role)
 
 			entry := log.With(
 				slog.String("method", r.Method),

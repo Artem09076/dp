@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"strconv"
 
+	handlerlib "github.com/Artem09076/dp/backend/core_service/internal/lib/api/handler"
 	"github.com/Artem09076/dp/backend/core_service/internal/lib/api/response"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/services/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -22,6 +22,7 @@ type ServicesService interface {
 	GetService(ctx context.Context, serviceID uuid.UUID) (*sqlc.Service, error)
 	DeleteService(ctx context.Context, serviceID uuid.UUID) error
 	UpdateService(ctx context.Context, serviceID uuid.UUID, updateServiceObject dto.PatchServiceRequest) error
+	CheckServiceOwnership(ctx context.Context, userID uuid.UUID, serviceID uuid.UUID) (bool, error)
 }
 
 type ServiceHandler struct {
@@ -40,18 +41,11 @@ func (h *ServiceHandler) CreateService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.CreateService"
 		log := h.log.With(slog.String("op", op))
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
-			return
-		}
-		userID, err := uuid.Parse((*claims)["user_id"].(string))
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error("Failed to parse user_id")
+			log.Error(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid user_id"))
+			render.JSON(w, r, response.Error(err.Error()))
 			return
 		}
 		var body dto.CreateServiceRequest
@@ -84,13 +78,6 @@ func (h *ServiceHandler) SearchServices() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.SearchServices"
 		log := h.log.With(slog.String("op", op))
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
-			return
-		}
 
 		query := r.URL.Query().Get("query")
 		page := r.URL.Query().Get("page")
@@ -138,13 +125,6 @@ func (h *ServiceHandler) GetService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.GetService"
 		log := h.log.With(slog.String("op", op))
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
-			return
-		}
 		serviceIDStr := chi.URLParam(r, "id")
 		serviceID, err := uuid.Parse(serviceIDStr)
 		if err != nil {
@@ -175,11 +155,11 @@ func (h *ServiceHandler) DeleteService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.DeleteService"
 		log := h.log.With(slog.String("op", op))
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
+		if err != nil {
+			log.Error(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
+			render.JSON(w, r, response.Error(err.Error()))
 			return
 		}
 		serviceIDStr := chi.URLParam(r, "id")
@@ -190,7 +170,17 @@ func (h *ServiceHandler) DeleteService() http.HandlerFunc {
 			render.JSON(w, r, response.Error("invalid service_id"))
 			return
 		}
-
+		if ok, err := h.service.CheckServiceOwnership(r.Context(), userID, serviceID); err != nil {
+			log.Error("Failed to check service ownership", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to check service ownership"))
+			return
+		} else if !ok {
+			log.Warn("User does not own the service", slog.String("userID", userID.String()), slog.String("serviceID", serviceID.String()))
+			w.WriteHeader(http.StatusForbidden)
+			render.JSON(w, r, response.Error("you do not have permission to create a discount for this service"))
+			return
+		}
 		err = h.service.DeleteService(r.Context(), serviceID)
 		if err != nil {
 			log.Error("internal server error", slog.String("Error", err.Error()))
@@ -207,11 +197,11 @@ func (h *ServiceHandler) PatchService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.PatchService"
 		log := h.log.With(slog.String("op", op))
-		claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-		if !ok || claims == nil {
-			log.Error("Failed to parse claims")
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
+		if err != nil {
+			log.Error(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid authentication claims"))
+			render.JSON(w, r, response.Error(err.Error()))
 			return
 		}
 		serviceIDStr := chi.URLParam(r, "id")
@@ -222,7 +212,17 @@ func (h *ServiceHandler) PatchService() http.HandlerFunc {
 			render.JSON(w, r, response.Error("invalid service_id"))
 			return
 		}
-
+		if ok, err := h.service.CheckServiceOwnership(r.Context(), userID, serviceID); err != nil {
+			log.Error("Failed to check service ownership", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
+			w.WriteHeader(http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to check service ownership"))
+			return
+		} else if !ok {
+			log.Warn("User does not own the service", slog.String("userID", userID.String()), slog.String("serviceID", serviceID.String()))
+			w.WriteHeader(http.StatusForbidden)
+			render.JSON(w, r, response.Error("you do not have permission to create a discount for this service"))
+			return
+		}
 		var updateServiceObject dto.PatchServiceRequest
 		if err := json.NewDecoder(r.Body).Decode(&updateServiceObject); err != nil {
 			log.Error("Failed to decode request body", slog.String("Error", err.Error()))

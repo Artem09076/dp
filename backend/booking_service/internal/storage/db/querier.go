@@ -14,12 +14,18 @@ type Querier interface {
 	CancelBooking(ctx context.Context, id uuid.UUID) error
 	CreateBooking(ctx context.Context, arg CreateBookingParams) (uuid.UUID, error)
 	GetBooking(ctx context.Context, id uuid.UUID) (Booking, error)
+	GetBookingByClientID(ctx context.Context, clientID uuid.UUID) ([]Booking, error)
 	GetBookingByID(ctx context.Context, id uuid.UUID) (GetBookingByIDRow, error)
+	GetBookingByPerformerID(ctx context.Context, performerID uuid.UUID) ([]Booking, error)
 	GetBookingsForUpdate(ctx context.Context, serviceID uuid.UUID) ([]GetBookingsForUpdateRow, error)
 	GetDiscountById(ctx context.Context, id uuid.UUID) (Discount, error)
 	GetServiceById(ctx context.Context, id uuid.UUID) (Service, error)
 	GetUserById(ctx context.Context, id uuid.UUID) (User, error)
+	IncreaseDiscountUsage(ctx context.Context, id uuid.UUID) error
+	ServiceExists(ctx context.Context, id uuid.UUID) (bool, error)
 	SubmitBooking(ctx context.Context, id uuid.UUID) error
+	UpdateBookingTime1(ctx context.Context, arg UpdateBookingTime1Params) error
+	UpdateBookingTime2(ctx context.Context, arg UpdateBookingTime2Params) error
 }
 
 var _ Querier = (*Queries)(nil)

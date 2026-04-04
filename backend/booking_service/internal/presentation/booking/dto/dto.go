@@ -19,3 +19,7 @@ type CreateBookingResponse struct {
 type CancelBookingResponse struct {
 	Status string `json:"status"`
 }
+
+type PatchBookingRequest struct {
+	BookingTime time.Time `json:"booking_time,omitempty"`
+}

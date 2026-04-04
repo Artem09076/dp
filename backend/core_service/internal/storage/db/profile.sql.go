@@ -73,3 +73,19 @@ func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) er
 	_, err := q.db.ExecContext(ctx, updateProfile, arg.Email, arg.Name, arg.ID)
 	return err
 }
+
+const updateProfileVerificationStatus = `-- name: UpdateProfileVerificationStatus :exec
+UPDATE users
+SET verification_status = $1
+WHERE id = $2
+`
+
+type UpdateProfileVerificationStatusParams struct {
+	VerificationStatus VerificationStatus `json:"verification_status"`
+	ID                 uuid.UUID          `json:"id"`
+}
+
+func (q *Queries) UpdateProfileVerificationStatus(ctx context.Context, arg UpdateProfileVerificationStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateProfileVerificationStatus, arg.VerificationStatus, arg.ID)
+	return err
+}

@@ -40,6 +40,7 @@ func main() {
 		log.Error("failed init starage", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+	defer conn.Close()
 	ch, _ := conn.Channel()
 	ch.QueueDeclare("booking_queue", true, false, false, false, nil)
 	publisher := rabbit.NewPublisher(ch)
@@ -59,9 +60,13 @@ func main() {
 
 	router.Group(func(r chi.Router) {
 		r.Use(bookingmiddleware.NewJWTMiddleware(log, validator))
+		r.Use(bookingmiddleware.NewRoleMiddleware(log, []string{"admin", "performer", "client"}))
 		r.Post("/api/v1/booking", bookingHandlers.CreateBooking())
 		r.Patch("/api/v1/booking/cancel/{id}", bookingHandlers.CancelBooking())
 		r.Patch("/api/v1/booking/submit/{id}", bookingHandlers.SubmitBooking())
+		r.Patch("/api/v1/booking/{id}", bookingHandlers.PatchBooking())
+		r.Get("/api/v1/booking/{id}", bookingHandlers.GetBooking())
+		r.Get("/api/v1/bookings", bookingHandlers.GetBookings())
 
 	})
 

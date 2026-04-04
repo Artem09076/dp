@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash BYTEA NOT NULL,
     role user_role NOT NULL,
     inn VARCHAR(12) UNIQUE,
-    business_type business_type ,
+    business_type business_type,
     verification_status verification_status NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

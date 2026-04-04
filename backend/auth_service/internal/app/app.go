@@ -22,6 +22,7 @@ func New(log *slog.Logger, grpcPort uint, storagePath string, tokenTTL time.Dura
 		log.Error("failed to connect to database", "error", err)
 		panic(err)
 	}
+
 	queries := sqlc.New(db)
 
 	authService := auth.New(log, queries, tokenTTL)
@@ -29,5 +30,4 @@ func New(log *slog.Logger, grpcPort uint, storagePath string, tokenTTL time.Dura
 	return &App{
 		GRPCServ: grpcApp,
 	}
-
 }

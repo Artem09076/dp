@@ -19,3 +19,9 @@ WHERE id = $3;
 -- name: DeleteProfile :exec
 DELETE FROM users
 WHERE id = $1;
+
+
+-- name: UpdateProfileVerificationStatus :exec
+UPDATE users
+SET verification_status = $1
+WHERE id = $2;

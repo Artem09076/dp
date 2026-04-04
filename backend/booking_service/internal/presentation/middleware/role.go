@@ -3,30 +3,18 @@ package middleware
 import (
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/Artem09076/dp/backend/booking_service/internal/lib/api/response"
 	"github.com/go-chi/render"
-	"github.com/golang-jwt/jwt/v5"
 )
 
-func NewRoleMiddleware(log *slog.Logger) func(next http.Handler) http.Handler {
+func NewRoleMiddleware(log *slog.Logger, allowedRoles []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		op := "middleware.NewRoleMiddleware"
-
-		log := log.With(
-			slog.String("op", op),
-		)
-
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			claims, ok := r.Context().Value("claims").(*jwt.MapClaims)
-			if !ok || claims == nil {
-				log.Error("Failed to parse claims")
-				w.WriteHeader(http.StatusBadRequest)
-				render.JSON(w, r, response.Error("invalid authentication claims"))
-				return
-			}
-			role := (*claims)["role"].(string)
-			if role != "performer" && role != "admin" {
+			role := r.Context().Value("role").(string)
+			w.Header().Set("Content-Type", "application/json")
+			if !slices.Contains(allowedRoles, role) {
 				w.WriteHeader(http.StatusBadRequest)
 				render.JSON(w, r, response.Error("Invalid role"))
 				return
