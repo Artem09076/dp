@@ -36,6 +36,22 @@ func NewReviewHandler(service ReviewService, log *slog.Logger) *ReviewHandler {
 	}
 }
 
+func (h *ReviewHandler) convertToReviewResponse(review *sqlc.Review) dto.ReviewResponse {
+	resp := dto.ReviewResponse{
+		ID:        review.ID.String(),
+		BookingID: review.BookingID.String(),
+		Rating:    review.Rating,
+		CreatedAt: review.CreatedAt.String(),
+		UpdatedAt: review.UpdatedAt.String(),
+	}
+
+	if review.Comment.Valid {
+		resp.Comment = &review.Comment.String
+	}
+
+	return resp
+}
+
 func (h *ReviewHandler) CreateReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := h.log.With("op", "reviews.handlers.CreateReview")
@@ -57,7 +73,8 @@ func (h *ReviewHandler) CreateReview() http.HandlerFunc {
 			h.handleError(w, r, err)
 			return
 		}
-		if err := json.NewEncoder(w).Encode(review); err != nil {
+		resp := h.convertToReviewResponse(review)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
 			h.handleError(w, r, err)
 			return
@@ -74,7 +91,7 @@ func (h *ReviewHandler) GetReviewByBookingID() http.HandlerFunc {
 			h.handleError(w, r, err)
 			return
 		}
-		bookingIDStr := chi.URLParam(r, "booking_id")
+		bookingIDStr := chi.URLParam(r, "bookingID")
 		if bookingIDStr == "" {
 			h.handleError(w, r, handlerlib.ErrInvalidInput)
 			return
@@ -91,7 +108,8 @@ func (h *ReviewHandler) GetReviewByBookingID() http.HandlerFunc {
 			h.handleError(w, r, err)
 			return
 		}
-		if err := json.NewEncoder(w).Encode(review); err != nil {
+		resp := h.convertToReviewResponse(review)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
 			h.handleError(w, r, err)
 			return
@@ -103,7 +121,7 @@ func (h *ReviewHandler) GetReviewsByServiceID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := h.log.With("op", "reviews.handlers.GetReviewsByServiceID")
 		w.Header().Set("Content-Type", "application/json")
-		serviceIDStr := chi.URLParam(r, "service_id")
+		serviceIDStr := chi.URLParam(r, "serviceID")
 		if serviceIDStr == "" {
 			h.handleError(w, r, handlerlib.ErrInvalidInput)
 			return
@@ -121,7 +139,20 @@ func (h *ReviewHandler) GetReviewsByServiceID() http.HandlerFunc {
 			h.handleError(w, r, err)
 			return
 		}
-		if err := json.NewEncoder(w).Encode(reviews); err != nil {
+		responses := make([]dto.ReviewResponse, len(reviews))
+		for i, review := range reviews {
+			responses[i] = dto.ReviewResponse{
+				ID:        review.ID.String(),
+				BookingID: review.BookingID.String(),
+				Rating:    review.Rating,
+				CreatedAt: review.CreatedAt.String(),
+				UpdatedAt: review.UpdatedAt.String(),
+			}
+			if review.Comment.Valid {
+				responses[i].Comment = &review.Comment.String
+			}
+		}
+		if err := json.NewEncoder(w).Encode(responses); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
 			h.handleError(w, r, err)
 			return
@@ -138,7 +169,7 @@ func (h *ReviewHandler) PatchReview() http.HandlerFunc {
 			h.handleError(w, r, err)
 			return
 		}
-		reviewIDStr := chi.URLParam(r, "review_id")
+		reviewIDStr := chi.URLParam(r, "reviewID")
 		if reviewIDStr == "" {
 			h.handleError(w, r, handlerlib.ErrInvalidInput)
 			return
@@ -175,7 +206,7 @@ func (h *ReviewHandler) DeleteReview() http.HandlerFunc {
 			h.handleError(w, r, err)
 			return
 		}
-		reviewIDStr := chi.URLParam(r, "review_id")
+		reviewIDStr := chi.URLParam(r, "reviewID")
 		if reviewIDStr == "" {
 			h.handleError(w, r, handlerlib.ErrInvalidInput)
 			return
@@ -201,7 +232,7 @@ func (h *ReviewHandler) GetReviewByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := h.log.With("op", "reviews.handlers.GetReviewByID")
 		w.Header().Set("Content-Type", "application/json")
-		reviewIDStr := chi.URLParam(r, "review_id")
+		reviewIDStr := chi.URLParam(r, "reviewID")
 		if reviewIDStr == "" {
 			h.handleError(w, r, handlerlib.ErrInvalidInput)
 			return
@@ -218,7 +249,8 @@ func (h *ReviewHandler) GetReviewByID() http.HandlerFunc {
 			h.handleError(w, r, err)
 			return
 		}
-		if err := json.NewEncoder(w).Encode(review); err != nil {
+		resp := h.convertToReviewResponse(review)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
 			h.handleError(w, r, err)
 			return

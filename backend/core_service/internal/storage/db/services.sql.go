@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -60,12 +61,34 @@ func (q *Queries) DeleteService(ctx context.Context, id uuid.UUID) error {
 }
 
 const getService = `-- name: GetService :one
-SELECT id, performer_id, title, description, price, duration_minutes, created_at, updated_at FROM services WHERE id = $1
+SELECT 
+    s.id, s.performer_id, s.title, s.description, s.price, s.duration_minutes, s.created_at, s.updated_at,
+    COALESCE((
+        SELECT AVG(r.rating)::FLOAT
+        FROM bookings b
+        JOIN reviews r ON r.booking_id = b.id
+        WHERE b.service_id = s.id
+    ), 0)::FLOAT AS average_rating
+FROM services s
+WHERE s.id = $1
+ORDER BY s.created_at DESC
 `
 
-func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error) {
+type GetServiceRow struct {
+	ID              uuid.UUID      `json:"id"`
+	PerformerID     uuid.UUID      `json:"performer_id"`
+	Title           string         `json:"title"`
+	Description     sql.NullString `json:"description"`
+	Price           int64          `json:"price"`
+	DurationMinutes int32          `json:"duration_minutes"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	AverageRating   float64        `json:"average_rating"`
+}
+
+func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (GetServiceRow, error) {
 	row := q.db.QueryRowContext(ctx, getService, id)
-	var i Service
+	var i GetServiceRow
 	err := row.Scan(
 		&i.ID,
 		&i.PerformerID,
@@ -75,8 +98,47 @@ func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error)
 		&i.DurationMinutes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AverageRating,
 	)
 	return i, err
+}
+
+const getServices = `-- name: GetServices :many
+SELECT id, performer_id, title, description, price, duration_minutes, created_at, updated_at FROM services
+WHERE performer_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetServices(ctx context.Context, performerID uuid.UUID) ([]Service, error) {
+	rows, err := q.db.QueryContext(ctx, getServices, performerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Service{}
+	for rows.Next() {
+		var i Service
+		if err := rows.Scan(
+			&i.ID,
+			&i.PerformerID,
+			&i.Title,
+			&i.Description,
+			&i.Price,
+			&i.DurationMinutes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listServices = `-- name: ListServices :many

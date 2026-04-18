@@ -61,6 +61,15 @@ func (q *Queries) CreateBooking(ctx context.Context, arg CreateBookingParams) (u
 	return id, err
 }
 
+const deleteBooking = `-- name: DeleteBooking :exec
+DELETE FROM bookings WHERE id = $1
+`
+
+func (q *Queries) DeleteBooking(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteBooking, id)
+	return err
+}
+
 const getBooking = `-- name: GetBooking :one
 SELECT id, client_id, service_id, base_price, discount_id, final_price, booking_time, status, created_at, updated_at FROM bookings WHERE id = $1
 `
@@ -209,11 +218,24 @@ func (q *Queries) GetBookingByPerformerID(ctx context.Context, performerID uuid.
 }
 
 const getBookingsForUpdate = `-- name: GetBookingsForUpdate :many
-SELECT b.id, b.booking_time, s.duration_minutes from bookings b
+SELECT 
+    b.id,
+    b.booking_time,
+    s.duration_minutes
+FROM bookings b
 JOIN services s ON s.id = b.service_id
-WHERE b.service_id = $1 AND b.status IN ('pending', 'confirmed')
+WHERE s.performer_id = $1
+  AND b.status IN ('pending', 'confirmed')
+  AND b.booking_time < $3
+  AND b.booking_time + (s.duration_minutes || ' minutes')::interval > $2  -- new_start
 FOR UPDATE
 `
+
+type GetBookingsForUpdateParams struct {
+	PerformerID   uuid.UUID `json:"performer_id"`
+	BookingTime   time.Time `json:"booking_time"`
+	BookingTime_2 time.Time `json:"booking_time_2"`
+}
 
 type GetBookingsForUpdateRow struct {
 	ID              uuid.UUID `json:"id"`
@@ -221,8 +243,8 @@ type GetBookingsForUpdateRow struct {
 	DurationMinutes int32     `json:"duration_minutes"`
 }
 
-func (q *Queries) GetBookingsForUpdate(ctx context.Context, serviceID uuid.UUID) ([]GetBookingsForUpdateRow, error) {
-	rows, err := q.db.QueryContext(ctx, getBookingsForUpdate, serviceID)
+func (q *Queries) GetBookingsForUpdate(ctx context.Context, arg GetBookingsForUpdateParams) ([]GetBookingsForUpdateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getBookingsForUpdate, arg.PerformerID, arg.BookingTime, arg.BookingTime_2)
 	if err != nil {
 		return nil, err
 	}

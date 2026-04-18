@@ -24,7 +24,8 @@ type Querier interface {
 	GetReviewByBookingID(ctx context.Context, bookingID uuid.UUID) (Review, error)
 	GetReviewByID(ctx context.Context, id uuid.UUID) (Review, error)
 	GetReviewsByServiceID(ctx context.Context, arg GetReviewsByServiceIDParams) ([]Review, error)
-	GetService(ctx context.Context, id uuid.UUID) (Service, error)
+	GetService(ctx context.Context, id uuid.UUID) (GetServiceRow, error)
+	GetServices(ctx context.Context, performerID uuid.UUID) ([]Service, error)
 	ListServices(ctx context.Context) ([]Service, error)
 	SearchServices(ctx context.Context, arg SearchServicesParams) ([]Service, error)
 	UpdateDiscount(ctx context.Context, arg UpdateDiscountParams) error

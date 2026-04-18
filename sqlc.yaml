@@ -30,6 +30,7 @@ sql:
           - db_type: "BLOB"
             go_type:  
               type: "[]byte"
+    
 
   - engine: "postgresql"
     schema: "./migrations"

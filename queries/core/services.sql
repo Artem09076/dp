@@ -17,7 +17,23 @@ LIMIT $2 OFFSET $3;
 
 
 -- name: GetService :one
-SELECT * FROM services WHERE id = $1;
+SELECT 
+    s.*,
+    COALESCE((
+        SELECT AVG(r.rating)::FLOAT
+        FROM bookings b
+        JOIN reviews r ON r.booking_id = b.id
+        WHERE b.service_id = s.id
+    ), 0)::FLOAT AS average_rating
+FROM services s
+WHERE s.id = $1
+ORDER BY s.created_at DESC;
+
+
+-- name: GetServices :many
+SELECT * FROM services
+WHERE performer_id = $1
+ORDER BY created_at DESC;
 
 -- name: DeleteService :exec
 DELETE FROM services WHERE id = $1;

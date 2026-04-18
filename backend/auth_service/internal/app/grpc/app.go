@@ -15,8 +15,8 @@ type App struct {
 	port       uint
 }
 
-func New(log *slog.Logger, authService authgrpc.Auth, port uint) *App {
-	gRpcServer := grpc.NewServer()
+func New(log *slog.Logger, authService authgrpc.Auth, jwtSecret []byte, port uint) *App {
+	gRpcServer := grpc.NewServer(grpc.UnaryInterceptor(authgrpc.AuthInterceptor(authService, jwtSecret)))
 	authgrpc.RegisterAuth(gRpcServer, authService)
 	return &App{
 		log:        log,

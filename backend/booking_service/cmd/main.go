@@ -17,6 +17,7 @@ import (
 	bookingmiddleware "github.com/Artem09076/dp/backend/booking_service/internal/presentation/middleware"
 	sqlc "github.com/Artem09076/dp/backend/booking_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/booking_service/internal/storage/rabbit"
+	"github.com/Artem09076/dp/backend/booking_service/internal/storage/redis"
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/go-chi/chi/middleware"
@@ -45,11 +46,18 @@ func main() {
 	ch.QueueDeclare("booking_queue", true, false, false, false, nil)
 	publisher := rabbit.NewPublisher(ch)
 
+	redisClient, err := redis.NewRedisClient(log, cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB)
+	if err != nil {
+		log.Error("failed to connect to Redis", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer redisClient.Close()
+
 	queries := sqlc.New(db)
 
 	router := chi.NewRouter()
 
-	validator := jwt.NewValidator("secret")
+	validator := jwt.NewValidator(cfg.TokenSecret, redisClient)
 
 	bookingService := booking.NewBookingService(queries, db, log, publisher)
 	bookingHandlers := bookinghandlers.NewBookingHandler(bookingService, log)
@@ -60,13 +68,13 @@ func main() {
 
 	router.Group(func(r chi.Router) {
 		r.Use(bookingmiddleware.NewJWTMiddleware(log, validator))
-		r.Use(bookingmiddleware.NewRoleMiddleware(log, []string{"admin", "performer", "client"}))
-		r.Post("/api/v1/booking", bookingHandlers.CreateBooking())
-		r.Patch("/api/v1/booking/cancel/{id}", bookingHandlers.CancelBooking())
-		r.Patch("/api/v1/booking/submit/{id}", bookingHandlers.SubmitBooking())
-		r.Patch("/api/v1/booking/{id}", bookingHandlers.PatchBooking())
-		r.Get("/api/v1/booking/{id}", bookingHandlers.GetBooking())
+		r.Post("/api/v1/bookings", bookingHandlers.CreateBooking())
+		r.Patch("/api/v1/bookings/cancel/{id}", bookingHandlers.CancelBooking())
+		r.Patch("/api/v1/bookings/submit/{id}", bookingHandlers.SubmitBooking())
+		r.Patch("/api/v1/bookings/{id}", bookingHandlers.PatchBooking())
+		r.Get("/api/v1/bookings/{id}", bookingHandlers.GetBooking())
 		r.Get("/api/v1/bookings", bookingHandlers.GetBookings())
+		r.Delete("/api/v1/bookings/{id}", bookingHandlers.DeleteBooking())
 
 	})
 

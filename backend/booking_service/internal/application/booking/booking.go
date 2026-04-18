@@ -29,6 +29,7 @@ type BookingRepository interface {
 	GetBookingByPerformerID(ctx context.Context, performerID uuid.UUID) ([]sqlc.Booking, error)
 	ServiceExists(ctx context.Context, id uuid.UUID) (bool, error)
 	IncreaseDiscountUsage(ctx context.Context, id uuid.UUID) error
+	DeleteBooking(ctx context.Context, id uuid.UUID) error
 }
 type BookingService struct {
 	repo      BookingRepository
@@ -56,6 +57,14 @@ func (s *BookingService) CheckBookingOwnerships(ctx context.Context, userID uuid
 }
 
 func (s *BookingService) CreateBooking(ctx context.Context, ClientID uuid.UUID, booking dto.CreateBookingRequest) (uuid.UUID, error) {
+	user, err := s.repo.GetUserById(ctx, ClientID)
+	if err != nil {
+		s.log.Error("failed to get user", "error", err)
+		return uuid.Nil, err
+	}
+	if user.Role != "client" {
+		return uuid.Nil, handlerlib.ErrForbidden
+	}
 	ok, err := s.CheckBookingTime(ctx, booking.ServiceID, booking.BookingTime)
 	if err != nil {
 		s.log.Info(err.Error())
@@ -188,6 +197,24 @@ func (s *BookingService) UpdateBooking(ctx context.Context, userID uuid.UUID, bo
 	return nil
 }
 
+func (s *BookingService) DeleteBooking(ctx context.Context, userID uuid.UUID, bookingID uuid.UUID) error {
+	booking, err := s.repo.GetBookingByID(ctx, bookingID)
+
+	if err != nil {
+		s.log.Error("failed to get booking", "error", err)
+		return handlerlib.ErrNotFound
+	}
+
+	if !s.CheckBookingOwnerships(ctx, userID, booking.ClientID, booking.PerformerID) {
+		return handlerlib.ErrForbidden
+	}
+	if err := s.repo.DeleteBooking(ctx, bookingID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *BookingService) CheckBookingTime(ctx context.Context, serviceID uuid.UUID, bookingTime time.Time) (bool, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -206,17 +233,16 @@ func (s *BookingService) CheckBookingTime(ctx context.Context, serviceID uuid.UU
 	newStart := bookingTime
 	newEnd := newStart.Add(time.Duration(service.DurationMinutes) * time.Minute)
 
-	bookings, err := qtx.GetBookingsForUpdate(ctx, service.ID)
+	bookings, err := qtx.GetBookingsForUpdate(ctx, sqlc.GetBookingsForUpdateParams{
+		PerformerID:   service.PerformerID,
+		BookingTime:   newStart,
+		BookingTime_2: newEnd,
+	})
 	if err != nil {
 		return false, err
 	}
-	for _, b := range bookings {
-		exsitsingStart := b.BookingTime
-		exsistingEnd := b.BookingTime.Add(time.Duration(b.DurationMinutes) * time.Minute)
-		if newStart.Before(exsistingEnd) && newEnd.After(exsitsingStart) {
-			return false, handlerlib.ErrTimeBusy
-		}
-
+	if len(bookings) > 0 {
+		return false, handlerlib.ErrTimeBusy
 	}
 	return true, nil
 }

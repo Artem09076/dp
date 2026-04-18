@@ -6,6 +6,8 @@ option go_package = "/proto/gen/auth;authpb";
 service AuthService {
   rpc Register (RegisterRequest) returns (AuthResponse);
   rpc Login (LoginRequest) returns (AuthResponse);
+  rpc RefreshToken (RefreshTokenRequest) returns (AuthResponse);
+  rpc Logout (LogoutRequest) returns (LogoutResponse);
 }
 
 message RegisterRequest {
@@ -23,8 +25,20 @@ message LoginRequest {
   string password = 3;
 }
 
+message LogoutRequest {
+}
+
+message LogoutResponse {
+  bool success = 1;
+}
+
+message RefreshTokenRequest {
+  string refreshToken = 1;
+}
+
 message AuthResponse {
   string accessToken = 1;
+  string refreshToken = 2;
 }
 
 

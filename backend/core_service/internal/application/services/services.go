@@ -13,7 +13,8 @@ import (
 type ServiceRepository interface {
 	CreateService(ctx context.Context, arg sqlc.CreateServiceParams) (sqlc.Service, error)
 	SearchServices(ctx context.Context, arg sqlc.SearchServicesParams) ([]sqlc.Service, error)
-	GetService(ctx context.Context, id uuid.UUID) (sqlc.Service, error)
+	GetService(ctx context.Context, id uuid.UUID) (sqlc.GetServiceRow, error)
+	GetServices(ctx context.Context, performerID uuid.UUID) ([]sqlc.Service, error)
 	DeleteService(ctx context.Context, id uuid.UUID) error
 	UpdateService(ctx context.Context, arg sqlc.UpdateServiceParams) error
 	GetProfile(ctx context.Context, id uuid.UUID) (sqlc.GetProfileRow, error)
@@ -86,7 +87,7 @@ func (s *Service) SearchServices(ctx context.Context, query string, page int, li
 	return res, nil
 }
 
-func (s *Service) GetService(ctx context.Context, serviceID uuid.UUID) (*sqlc.Service, error) {
+func (s *Service) GetService(ctx context.Context, serviceID uuid.UUID) (*sqlc.GetServiceRow, error) {
 	res, err := s.repo.GetService(ctx, serviceID)
 	if err != nil {
 		return nil, err
@@ -128,4 +129,8 @@ func (s *Service) UpdateService(ctx context.Context, serviceID uuid.UUID, update
 	}
 	return nil
 
+}
+
+func (s *Service) GetServices(ctx context.Context, userID uuid.UUID) ([]sqlc.Service, error) {
+	return s.repo.GetServices(ctx, userID)
 }

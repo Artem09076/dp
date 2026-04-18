@@ -13,7 +13,7 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 	log := logger.SetupLogger(cfg.Env)
-	appl := app.New(log, cfg.GRPC.Port, cfg.DBPath, cfg.TokenTTL)
+	appl := app.New(log, cfg.GRPC.Port, cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB, cfg.DBPath, cfg.TokenAccessTTL, cfg.TokenRefreshTTL, cfg.TokenSecret)
 
 	go appl.GRPCServ.Run()
 	end := make(chan os.Signal, 1)

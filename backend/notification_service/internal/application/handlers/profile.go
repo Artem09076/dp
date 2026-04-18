@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"time"
 
 	"github.com/Artem09076/dp/backend/notification_service/internal/application/dto"
+	"github.com/Artem09076/dp/backend/notification_service/internal/application/templates"
 	"github.com/Artem09076/dp/backend/notification_service/internal/domain"
 )
 
@@ -22,7 +24,6 @@ func NewProfileHandler(log *slog.Logger, emailSender domain.EmailSender) *Profil
 }
 
 func (h *ProfileHandler) Handle(msg []byte) error {
-	h.log.Info("sdfghytred")
 	var event dto.ProfileEvent
 	if err := json.Unmarshal(msg, &event); err != nil {
 		return err
@@ -38,8 +39,28 @@ func (h *ProfileHandler) Handle(msg []byte) error {
 }
 
 func (h *ProfileHandler) HandleVerificationStatusUpdatedSubmit(event dto.ProfileEvent) error {
-	subject := "Профиль верифицирован"
-	body := "Ваш профиль был успешно верифицирован. Теперь вы можете пользоваться всеми функциями нашего сервиса."
+	emailData := templates.EmailData{
+		Title:        "Профиль успешно верифицирован",
+		Username:     event.Name,
+		ButtonText:   "Перейти в личный кабинет",
+		ButtonURL:    "https://your-service.com/dashboard",
+		Year:         time.Now().Year(),
+		SupportEmail: "support@your-service.com",
+	}
+
+	profileData := templates.ProfileData{
+		EmailData:          emailData,
+		VerificationStatus: "success",
+		Reason:             "",
+	}
+
+	body, err := templates.RenderProfileVerificationSuccess(profileData)
+	if err != nil {
+		h.log.Error("failed to render template", slog.String("error", err.Error()))
+		return err
+	}
+
+	subject := "🎉 Поздравляем! Ваш профиль успешно верифицирован"
 	return h.emailSender.Send(context.Background(), domain.Email{
 		To:      event.Email,
 		Subject: subject,
@@ -49,8 +70,29 @@ func (h *ProfileHandler) HandleVerificationStatusUpdatedSubmit(event dto.Profile
 }
 
 func (h *ProfileHandler) HandleVerificationStatusUpdatedReject(event dto.ProfileEvent) error {
-	subject := "Профиль отклонен"
-	body := "К сожалению, ваш профиль не прошел верификацию. Пожалуйста, свяжитесь с нашей поддержкой для получения дополнительной информации."
+	reason := "Номер ИП, предоставленное вами уже закрыто или выглядит подозрительно"
+	emailData := templates.EmailData{
+		Title:        "Верификация профиля отклонена",
+		Username:     event.Name,
+		ButtonText:   "Попробовать снова",
+		ButtonURL:    "https://your-service.com/verification",
+		Year:         time.Now().Year(),
+		SupportEmail: "support@your-service.com",
+	}
+
+	profileData := templates.ProfileData{
+		EmailData:          emailData,
+		VerificationStatus: "rejected",
+		Reason:             reason,
+	}
+
+	body, err := templates.RenderProfileVerificationReject(profileData)
+	if err != nil {
+		h.log.Error("failed to render template", slog.String("error", err.Error()))
+		return err
+	}
+
+	subject := "⚠️ Верификация профиля отклонена"
 	return h.emailSender.Send(context.Background(), domain.Email{
 		To:      event.Email,
 		Subject: subject,

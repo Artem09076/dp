@@ -51,8 +51,21 @@ func (h *ProfileHandler) GetProfile() http.HandlerFunc {
 			render.JSON(w, r, response.Error("internal server error"))
 			return
 		}
+		resp := dto.ProfileResponse{
+			Name:               profile.Name,
+			Email:              profile.Email,
+			Role:               string(profile.Role),
+			VerificationStatus: string(profile.VerificationStatus),
+		}
+		if profile.Inn.Valid {
+			resp.Inn = &profile.Inn.String
+		}
+		if profile.BusinessType.Valid {
+			businessType := string(profile.BusinessType.BusinessType)
+			resp.BusinessType = &businessType
+		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(profile); err != nil {
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}

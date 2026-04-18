@@ -107,7 +107,19 @@ func (h *DiscountsHandler) CreateDiscount() http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(discount); err != nil {
+		resp := dto.DiscountResponse{
+			ID:        discount.ID.String(),
+			ServiceID: discount.ServiceID.String(),
+			Type:      string(discount.Type),
+			Value:     int(discount.Value),
+			ValidFrom: discount.ValidFrom,
+			ValidTo:   discount.ValidTo,
+			MaxUses:   int(discount.MaxUses),
+			UsedCount: int(discount.UsedCount),
+			CreatedAt: discount.CreatedAt,
+		}
+
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", slog.String("Error", err.Error()))
 			w.WriteHeader(http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to encode response"))
@@ -135,8 +147,21 @@ func (h *DiscountsHandler) GetDiscount() http.HandlerFunc {
 			render.JSON(w, r, response.Error("failed to get discount"))
 			return
 		}
+
+		resp := dto.DiscountResponse{
+			ID:        discount.ID.String(),
+			ServiceID: discount.ServiceID.String(),
+			Type:      string(discount.Type),
+			Value:     int(discount.Value),
+			ValidFrom: discount.ValidFrom,
+			ValidTo:   discount.ValidTo,
+			MaxUses:   int(discount.MaxUses),
+			UsedCount: int(discount.UsedCount),
+			CreatedAt: discount.CreatedAt,
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(discount); err != nil {
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", slog.String("Error", err.Error()))
 			w.WriteHeader(http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to encode response"))

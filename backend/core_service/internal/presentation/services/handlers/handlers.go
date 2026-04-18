@@ -19,10 +19,11 @@ import (
 type ServicesService interface {
 	CreateService(ctx context.Context, createServiceObject dto.CreateServiceRequest) (*sqlc.Service, error)
 	SearchServices(ctx context.Context, query string, page int, limit int) ([]sqlc.Service, error)
-	GetService(ctx context.Context, serviceID uuid.UUID) (*sqlc.Service, error)
+	GetService(ctx context.Context, serviceID uuid.UUID) (*sqlc.GetServiceRow, error)
 	DeleteService(ctx context.Context, serviceID uuid.UUID) error
 	UpdateService(ctx context.Context, serviceID uuid.UUID, updateServiceObject dto.PatchServiceRequest) error
 	CheckServiceOwnership(ctx context.Context, userID uuid.UUID, serviceID uuid.UUID) (bool, error)
+	GetServices(ctx context.Context, userID uuid.UUID) ([]sqlc.Service, error)
 }
 
 type ServiceHandler struct {
@@ -35,6 +36,24 @@ func NewServiceHandler(service ServicesService, log *slog.Logger) *ServiceHandle
 		service: service,
 		log:     log,
 	}
+}
+
+func (h *ServiceHandler) convertToServiceResponse(service *sqlc.Service) dto.ServiceResponse {
+	resp := dto.ServiceResponse{
+		ID:              service.ID.String(),
+		PerformerID:     service.PerformerID.String(),
+		Title:           service.Title,
+		Price:           service.Price,
+		DurationMinutes: service.DurationMinutes,
+		CreatedAt:       service.CreatedAt.String(),
+		UpdatedAt:       service.UpdatedAt.String(),
+	}
+
+	if service.Description.Valid {
+		resp.Description = &service.Description.String
+	}
+
+	return resp
 }
 
 func (h *ServiceHandler) CreateService() http.HandlerFunc {
@@ -65,8 +84,10 @@ func (h *ServiceHandler) CreateService() http.HandlerFunc {
 			return
 		}
 
+		resp := h.convertToServiceResponse(service)
+
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(service); err != nil {
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}
@@ -112,8 +133,24 @@ func (h *ServiceHandler) SearchServices() http.HandlerFunc {
 			return
 		}
 
+		responses := make([]dto.ServiceResponse, len(services))
+		for i, service := range services {
+			responses[i] = dto.ServiceResponse{
+				ID:              service.ID.String(),
+				PerformerID:     service.PerformerID.String(),
+				Title:           service.Title,
+				Price:           service.Price,
+				DurationMinutes: service.DurationMinutes,
+				CreatedAt:       service.CreatedAt.String(),
+				UpdatedAt:       service.UpdatedAt.String(),
+			}
+			if service.Description.Valid {
+				responses[i].Description = &service.Description.String
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(services); err != nil {
+		if err := json.NewEncoder(w).Encode(responses); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}
@@ -142,8 +179,64 @@ func (h *ServiceHandler) GetService() http.HandlerFunc {
 			return
 		}
 
+		resp := dto.ServiceResponse{
+			ID:              service.ID.String(),
+			PerformerID:     service.PerformerID.String(),
+			Title:           service.Title,
+			Price:           service.Price,
+			DurationMinutes: service.DurationMinutes,
+			CreatedAt:       service.CreatedAt.String(),
+			UpdatedAt:       service.UpdatedAt.String(),
+			AverageRating:   service.AverageRating,
+		}
+
+		if service.Description.Valid {
+			resp.Description = &service.Description.String
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(service); err != nil {
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+			return
+		}
+
+	}
+}
+
+func (h *ServiceHandler) GetServices() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const op = "service.handlers.DeleteService"
+		log := h.log.With(slog.String("op", op))
+		w.Header().Set("Content-Type", "application/json")
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
+		if err != nil {
+			log.Error(err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+			return
+		}
+		services, err := h.service.GetServices(r.Context(), userID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("Internal server error"))
+			return
+		}
+		responses := make([]dto.ServiceResponse, len(services))
+		for i, service := range services {
+			responses[i] = dto.ServiceResponse{
+				ID:              service.ID.String(),
+				PerformerID:     service.PerformerID.String(),
+				Title:           service.Title,
+				Price:           service.Price,
+				DurationMinutes: service.DurationMinutes,
+				CreatedAt:       service.CreatedAt.String(),
+				UpdatedAt:       service.UpdatedAt.String(),
+			}
+			if service.Description.Valid {
+				responses[i].Description = &service.Description.String
+			}
+		}
+		if err := json.NewEncoder(w).Encode(responses); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}

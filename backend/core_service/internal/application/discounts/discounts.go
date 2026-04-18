@@ -11,7 +11,7 @@ import (
 
 type DiscountRepository interface {
 	CreateDiscount(ctx context.Context, arg sqlc.CreateDiscountParams) (sqlc.Discount, error)
-	GetService(ctx context.Context, id uuid.UUID) (sqlc.Service, error)
+	GetService(ctx context.Context, id uuid.UUID) (sqlc.GetServiceRow, error)
 	GetDiscountById(ctx context.Context, id uuid.UUID) (sqlc.Discount, error)
 	UpdateDiscount(ctx context.Context, arg sqlc.UpdateDiscountParams) error
 	DeleteDiscount(ctx context.Context, id uuid.UUID) error

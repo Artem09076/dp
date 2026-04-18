@@ -22,6 +22,7 @@ func NewJWTMiddleware(log *slog.Logger, tokenValidator *jwt.JWTValidator) func(n
 		)
 
 		fn := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				w.WriteHeader(http.StatusUnauthorized)
@@ -39,8 +40,8 @@ func NewJWTMiddleware(log *slog.Logger, tokenValidator *jwt.JWTValidator) func(n
 			claims, err := tokenValidator.Validate(tokenString)
 			if err != nil {
 				log.Info(err.Error())
-				render.JSON(w, r, response.Error(err.Error()))
 				w.WriteHeader(http.StatusUnauthorized)
+				render.JSON(w, r, response.Error(err.Error()))
 				return
 			}
 
@@ -58,7 +59,6 @@ func NewJWTMiddleware(log *slog.Logger, tokenValidator *jwt.JWTValidator) func(n
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-
 			ctx := context.WithValue(r.Context(), "user_id", userID)
 			ctx = context.WithValue(ctx, "role", role)
 

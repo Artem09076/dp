@@ -9,17 +9,25 @@ import (
 )
 
 type Config struct {
-	Env        string        `yaml:"env" env-required:"true"`
-	DBPath     string        `yaml:"db_path" env-required:"true"`
-	RabbitPath string        `yaml:"rabbit_url" env-required:"true"`
-	HTTP       HTTPConfig    `yaml:"http"`
-	TokenTTL   time.Duration `yaml:"token_ttl" env-required:"true"`
+	Env         string        `yaml:"env" env-required:"true"`
+	DBPath      string        `yaml:"db_path" env-required:"true"`
+	RabbitPath  string        `yaml:"rabbit_url" env-required:"true"`
+	HTTP        HTTPConfig    `yaml:"http"`
+	TokenTTL    time.Duration `yaml:"token_ttl" env-required:"true"`
+	TokenSecret string        `yaml:"token_secret" env-required:"true"`
+	Redis       RedisConfig   `yaml:"redis"`
 }
 
 type HTTPConfig struct {
 	Address     string        `yaml:"address" env-required:"true"`
 	Timeout     time.Duration `yaml:"timeout" env-required:"true"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-required:"true"`
+}
+
+type RedisConfig struct {
+	Addr     string `yaml:"address" env-required:"true"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
 }
 
 func LoadConfig() *Config {

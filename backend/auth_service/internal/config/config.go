@@ -9,15 +9,24 @@ import (
 )
 
 type Config struct {
-	Env      string        `yaml:"env" env-required:"true"`
-	DBPath   string        `yaml:"db_path" env-required:"true"`
-	GRPC     GRPCConfig    `yaml:"grpc"`
-	TokenTTL time.Duration `yaml:"token_ttl" env-required:"true"`
+	Env             string        `yaml:"env" env-required:"true"`
+	DBPath          string        `yaml:"db_path" env-required:"true"`
+	GRPC            GRPCConfig    `yaml:"grpc"`
+	TokenAccessTTL  time.Duration `yaml:"token_accessTTL" env-required:"true"`
+	TokenRefreshTTL time.Duration `yaml:"token_refreshTTL" env-required:"true"`
+	TokenSecret     string        `yaml:"token_secret" env-required:"true"`
+	Redis           RedisConfig   `yaml:"redis"`
 }
 
 type GRPCConfig struct {
 	Port    uint          `yaml:"port" env-required:"true"`
 	Timeout time.Duration `yaml:"timeout" env-required:"true"`
+}
+
+type RedisConfig struct {
+	Addr     string `yaml:"address" env-required:"true"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
 }
 
 func LoadConfig() *Config {

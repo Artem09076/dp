@@ -26,6 +26,7 @@ type BookingService interface {
 	CheckBookingTime(ctx context.Context, serviceID uuid.UUID, bookingTime time.Time) (bool, error)
 	ServiceExists(ctx context.Context, serviceID uuid.UUID) (bool, error)
 	CheckBookingOwnerships(ctx context.Context, userID uuid.UUID, clientID uuid.UUID, performerID uuid.UUID) bool
+	DeleteBooking(ctx context.Context, userID uuid.UUID, bookingID uuid.UUID) error
 }
 
 type BookingHandler struct {
@@ -38,6 +39,59 @@ func NewBookingHandler(bookingService BookingService, log *slog.Logger) *Booking
 		bookingService: bookingService,
 		log:            log,
 	}
+}
+
+func (h *BookingHandler) convertToBookingResponse(booking *sqlc.GetBookingByIDRow) dto.BookingResponse {
+	resp := dto.BookingResponse{
+		ID:           booking.ID.String(),
+		ClientID:     booking.ClientID.String(),
+		ServiceID:    booking.ServiceID.String(),
+		ServiceTitle: booking.ServiceTitle,
+		PerformerID:  booking.PerformerID.String(),
+		BasePrice:    booking.BasePrice,
+		FinalPrice:   booking.FinalPrice,
+		BookingTime:  booking.BookingTime,
+		Status:       string(booking.Status),
+		CreatedAt:    booking.CreatedAt,
+		UpdatedAt:    booking.UpdatedAt,
+	}
+
+	if booking.DiscountID.Valid {
+		discountID := booking.DiscountID.UUID.String()
+		resp.DiscountID = &discountID
+	}
+
+	if booking.DiscountType.Valid {
+		discountType := string(booking.DiscountType.DiscoutnType)
+		resp.DiscountType = &discountType
+	}
+
+	if booking.DiscountValue.Valid {
+		resp.DiscountValue = &booking.DiscountValue.Int32
+	}
+
+	return resp
+}
+
+func (h *BookingHandler) convertToBookingListResponse(booking *sqlc.Booking) dto.BookingResponse {
+	resp := dto.BookingResponse{
+		ID:          booking.ID.String(),
+		ClientID:    booking.ClientID.String(),
+		ServiceID:   booking.ServiceID.String(),
+		BasePrice:   booking.BasePrice,
+		FinalPrice:  booking.FinalPrice,
+		BookingTime: booking.BookingTime,
+		Status:      string(booking.Status),
+		CreatedAt:   booking.CreatedAt,
+		UpdatedAt:   booking.UpdatedAt,
+	}
+
+	if booking.DiscountID.Valid {
+		discountID := booking.DiscountID.UUID.String()
+		resp.DiscountID = &discountID
+	}
+
+	return resp
 }
 
 func (h *BookingHandler) CreateBooking() http.HandlerFunc {
@@ -209,7 +263,9 @@ func (h *BookingHandler) GetBooking() http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(booking); err != nil {
+		resp := h.convertToBookingResponse(booking)
+
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}
@@ -235,10 +291,41 @@ func (h *BookingHandler) GetBookings() http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(bookings); err != nil {
+		responses := make([]dto.BookingResponse, len(bookings))
+		for i, booking := range bookings {
+			responses[i] = h.convertToBookingListResponse(&booking)
+		}
+
+		if err := json.NewEncoder(w).Encode(responses); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}
+	}
+}
+
+func (h *BookingHandler) DeleteBooking() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log := h.log.With(slog.String("op", "booking.handlers.GetBooking"))
+		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
+		if err != nil {
+			log.Error(err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+			return
+		}
+		bookingIDStr := chi.URLParam(r, "id")
+		bookingID, err := uuid.Parse(bookingIDStr)
+		if err != nil {
+			log.Error("Failed to parse booking_id", slog.String("Error", err.Error()))
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, response.Error("invalid booking_id"))
+			return
+		}
+		if err := h.bookingService.DeleteBooking(r.Context(), userID, bookingID); err != nil {
+			h.handleError(w, r, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

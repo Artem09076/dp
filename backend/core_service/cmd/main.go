@@ -23,6 +23,7 @@ import (
 	servicehandlers "github.com/Artem09076/dp/backend/core_service/internal/presentation/services/handlers"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/rabbit"
+	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
 	"github.com/go-chi/chi/middleware"
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -51,11 +52,18 @@ func main() {
 	ch.QueueDeclare("profile_queue", true, false, false, false, nil)
 	publisher := rabbit.NewPublisher(ch)
 
+	redisClient, err := redis.NewRedisClient(log, cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB)
+	if err != nil {
+		log.Error("failed to connect to Redis", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer redisClient.Close()
+
 	queries := sqlc.New(db)
 
 	router := chi.NewRouter()
 
-	validator := jwt.NewValidator("secret", queries)
+	validator := jwt.NewValidator(cfg.TokenSecret, redisClient)
 
 	profileService := profile.NewProfileService(queries, log, publisher)
 	profileHandlers := profilehandlers.NewProfileHandler(profileService, log)
@@ -94,6 +102,7 @@ func main() {
 		r.Post("/api/v1/services", serviceHandlers.CreateService())
 		r.Patch("/api/v1/services/{id}", serviceHandlers.PatchService())
 		r.Delete("/api/v1/services/{id}", serviceHandlers.DeleteService())
+		r.Get("/api/v1/services", serviceHandlers.GetServices())
 		r.Post("/api/v1/services/{id}/discounts", discountHandlers.CreateDiscount())
 		r.Patch("/api/v1/services/{serviceID}/discounts/{id}", discountHandlers.UpdateDiscount())
 		r.Delete("/api/v1/services/{serviceID}/discounts/{id}", discountHandlers.DeleteDiscount())

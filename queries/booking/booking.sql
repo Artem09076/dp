@@ -42,9 +42,16 @@ WHERE id = $1;
 
 
 -- name: GetBookingsForUpdate :many
-SELECT b.id, b.booking_time, s.duration_minutes from bookings b
+SELECT 
+    b.id,
+    b.booking_time,
+    s.duration_minutes
+FROM bookings b
 JOIN services s ON s.id = b.service_id
-WHERE b.service_id = $1 AND b.status IN ('pending', 'confirmed')
+WHERE s.performer_id = $1
+  AND b.status IN ('pending', 'confirmed')
+  AND b.booking_time < $3
+  AND b.booking_time + (s.duration_minutes || ' minutes')::interval > $2  -- new_start
 FOR UPDATE;
 
 
@@ -76,3 +83,7 @@ SELECT EXISTS (SELECT * FROM services WHERE id = $1);
 UPDATE discounts
 SET used_count = used_count + 1
 WHERE id = $1;
+
+
+-- name: DeleteBooking :exec
+DELETE FROM bookings WHERE id = $1;
