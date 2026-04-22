@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	apierrors "github.com/Artem09076/dp/backend/booking_service/internal/lib/api/errors"
 	handlerlib "github.com/Artem09076/dp/backend/booking_service/internal/lib/api/handler"
-	"github.com/Artem09076/dp/backend/booking_service/internal/lib/api/response"
+
 	"github.com/Artem09076/dp/backend/booking_service/internal/presentation/booking/dto"
 	sqlc "github.com/Artem09076/dp/backend/booking_service/internal/storage/db"
 	"github.com/go-chi/chi/v5"
@@ -94,29 +95,51 @@ func (h *BookingHandler) convertToBookingListResponse(booking *sqlc.Booking) dto
 	return resp
 }
 
+func (h *BookingHandler) writeError(w http.ResponseWriter, r *http.Request, err error, op string) {
+	h.log.Error(op, slog.String("error", err.Error()))
+	apiErr := apierrors.MapError(err)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(apiErr.StatusCode)
+	render.JSON(w, r, apierrors.NewErrorResponse(err))
+}
+
+func (h *BookingHandler) getUserID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	userID, err := handlerlib.GetUserIDFromClaims(r.Context())
+	if err != nil {
+		h.writeError(w, r, apierrors.ErrUnauthorized, "get_user_id")
+		return uuid.Nil, false
+	}
+	return userID, true
+}
+
+func (h *BookingHandler) getBookingID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	bookingIDStr := chi.URLParam(r, "id")
+	bookingID, err := uuid.Parse(bookingIDStr)
+	if err != nil {
+		h.writeError(w, r, apierrors.ErrInvalidInput, "parse_booking_id")
+		return uuid.Nil, false
+	}
+	return bookingID, true
+}
+
 func (h *BookingHandler) CreateBooking() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With(slog.String("op", "booking.handlers.CreateBooking"))
-		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
+		op := "booking.handlers.CreateBooking"
 		w.Header().Set("Content-Type", "application/json")
-		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+		userID, ok := h.getUserID(w, r)
+		if !ok {
 			return
 		}
 
 		var req dto.CreateBookingRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			log.Error("Failed to decode request body", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid request body"))
+			h.writeError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 		id, err := h.bookingService.CreateBooking(r.Context(), userID, req)
 
 		if err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
 		render.JSON(w, r, dto.CreateBookingResponse{ID: id})
@@ -125,33 +148,28 @@ func (h *BookingHandler) CreateBooking() http.HandlerFunc {
 
 func (h *BookingHandler) CancelBooking() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With(slog.String("op", "booking.handlers.CancelBooking"))
-		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
-		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
-			return
-		}
-		bookingIDStr := chi.URLParam(r, "id")
-		bookingID, err := uuid.Parse(bookingIDStr)
-		if err != nil {
-			log.Error("Failed to parse booking_id", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid booking_id"))
-			return
-		}
+		op := "booking.handlers.CancelBooking"
 		w.Header().Set("Content-Type", "application/json")
+
+		userID, ok := h.getUserID(w, r)
+		if !ok {
+			return
+		}
+
+		bookingID, ok := h.getBookingID(w, r)
+		if !ok {
+			return
+		}
 
 		booking, err := h.bookingService.GetBooking(r.Context(), userID, bookingID)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
 
 		err = h.bookingService.CancelBooking(r.Context(), userID, booking)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -160,39 +178,33 @@ func (h *BookingHandler) CancelBooking() http.HandlerFunc {
 
 func (h *BookingHandler) SubmitBooking() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With(slog.String("op", "booking.handlers.SubmitBooking"))
-		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
-		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
-			return
-		}
-		bookingIDStr := chi.URLParam(r, "id")
-		bookingID, err := uuid.Parse(bookingIDStr)
-		if err != nil {
-			log.Error("Failed to parse booking_id", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid booking_id"))
+		op := "booking.handlers.SubmitBooking"
+		w.Header().Set("Content-Type", "application/json")
+
+		userID, ok := h.getUserID(w, r)
+		if !ok {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		bookingID, ok := h.getBookingID(w, r)
+		if !ok {
+			return
+		}
+
 		booking, err := h.bookingService.GetBooking(r.Context(), userID, bookingID)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
 
 		if booking.Status == "cancelled" {
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("You can not submit a cancelled booking"))
+			h.writeError(w, r, apierrors.ErrAlreadyDone, op)
 			return
 		}
 
 		err = h.bookingService.SubmitBooking(r.Context(), userID, booking)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -201,72 +213,57 @@ func (h *BookingHandler) SubmitBooking() http.HandlerFunc {
 
 func (h *BookingHandler) PatchBooking() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With(slog.String("op", "booking.handlers.PatchBooking"))
-		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
-		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+		op := "booking.handlers.PatchBooking"
+		w.Header().Set("Content-Type", "application/json")
+
+		userID, ok := h.getUserID(w, r)
+		if !ok {
 			return
 		}
-		bookingIDStr := chi.URLParam(r, "id")
-		bookingID, err := uuid.Parse(bookingIDStr)
-		if err != nil {
-			log.Error("Failed to parse booking_id", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid booking_id"))
+
+		bookingID, ok := h.getBookingID(w, r)
+		if !ok {
 			return
 		}
+
 		var req dto.PatchBookingRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			log.Error("Failed to decode request body", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid request body"))
+			h.writeError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
-		err = h.bookingService.UpdateBooking(r.Context(), userID, bookingID, req)
-		w.Header().Set("Content-Type", "application/json")
-		if err != nil {
-			h.handleError(w, r, err)
+
+		if err := h.bookingService.UpdateBooking(r.Context(), userID, bookingID, req); err != nil {
+			h.writeError(w, r, err, op)
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
-
 func (h *BookingHandler) GetBooking() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With(slog.String("op", "booking.handlers.GetBooking"))
-		log.Info("GetBooking handler called")
-		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
-		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
-			return
-		}
-
-		bookingIDStr := chi.URLParam(r, "id")
-		bookingID, err := uuid.Parse(bookingIDStr)
-		if err != nil {
-			log.Error("Failed to parse booking_id", slog.String("booking_id", bookingIDStr))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid booking_id"))
-			return
-		}
-
+		op := "booking.handlers.GetBooking"
 		w.Header().Set("Content-Type", "application/json")
+
+		userID, ok := h.getUserID(w, r)
+		if !ok {
+			return
+		}
+
+		bookingID, ok := h.getBookingID(w, r)
+		if !ok {
+			return
+		}
 
 		booking, err := h.bookingService.GetBooking(r.Context(), userID, bookingID)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
 
 		resp := h.convertToBookingResponse(booking)
-
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+			h.writeError(w, r, err, op)
 			return
 		}
 	}
@@ -274,20 +271,17 @@ func (h *BookingHandler) GetBooking() http.HandlerFunc {
 
 func (h *BookingHandler) GetBookings() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With(slog.String("op", "booking.handlers.GetBooking"))
-		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
-		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+		op := "booking.handlers.GetBookings"
+		w.Header().Set("Content-Type", "application/json")
+
+		userID, ok := h.getUserID(w, r)
+		if !ok {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-
 		bookings, err := h.bookingService.GetBookings(r.Context(), userID)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
 
@@ -297,7 +291,7 @@ func (h *BookingHandler) GetBookings() http.HandlerFunc {
 		}
 
 		if err := json.NewEncoder(w).Encode(responses); err != nil {
-			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+			h.writeError(w, r, err, op)
 			return
 		}
 	}
@@ -305,44 +299,24 @@ func (h *BookingHandler) GetBookings() http.HandlerFunc {
 
 func (h *BookingHandler) DeleteBooking() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With(slog.String("op", "booking.handlers.GetBooking"))
-		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
-		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+		op := "booking.handlers.DeleteBooking"
+		w.Header().Set("Content-Type", "application/json")
+
+		userID, ok := h.getUserID(w, r)
+		if !ok {
 			return
 		}
-		bookingIDStr := chi.URLParam(r, "id")
-		bookingID, err := uuid.Parse(bookingIDStr)
-		if err != nil {
-			log.Error("Failed to parse booking_id", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid booking_id"))
+
+		bookingID, ok := h.getBookingID(w, r)
+		if !ok {
 			return
 		}
+
 		if err := h.bookingService.DeleteBooking(r.Context(), userID, bookingID); err != nil {
-			h.handleError(w, r, err)
+			h.writeError(w, r, err, op)
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
-}
-
-func (h *BookingHandler) handleError(w http.ResponseWriter, r *http.Request, err error) {
-	switch err {
-	case handlerlib.ErrNotFound:
-		w.WriteHeader(http.StatusNotFound)
-	case handlerlib.ErrForbidden:
-		w.WriteHeader(http.StatusForbidden)
-	case handlerlib.ErrInvalidInput:
-		w.WriteHeader(http.StatusBadRequest)
-	case handlerlib.ErrTimeBusy:
-		w.WriteHeader(http.StatusConflict)
-	case handlerlib.ErrAlreadyDone:
-		w.WriteHeader(http.StatusConflict)
-	default:
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-	render.JSON(w, r, response.Error(err.Error()))
 }

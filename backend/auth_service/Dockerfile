@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 RUN apk add --no-cache git
@@ -22,6 +22,6 @@ RUN apk add --no-cache ca-certificates
 COPY --from=builder /app/auth-service .
 COPY --from=builder /app/config ./config
 
-EXPOSE 50051
+EXPOSE 50051 8084
 
 CMD ["./auth-service"]

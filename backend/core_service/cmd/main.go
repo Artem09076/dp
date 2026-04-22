@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Artem09076/dp/backend/core_service/internal/application/admin"
 	"github.com/Artem09076/dp/backend/core_service/internal/application/discounts"
 	"github.com/Artem09076/dp/backend/core_service/internal/application/profile"
 	"github.com/Artem09076/dp/backend/core_service/internal/application/reviews"
@@ -16,6 +17,7 @@ import (
 	"github.com/Artem09076/dp/backend/core_service/internal/config"
 	"github.com/Artem09076/dp/backend/core_service/internal/lib/jwt"
 	"github.com/Artem09076/dp/backend/core_service/internal/logger"
+	adminhandler "github.com/Artem09076/dp/backend/core_service/internal/presentation/admin/handlers"
 	discounthandlers "github.com/Artem09076/dp/backend/core_service/internal/presentation/discounts/handlers"
 	coremiddleware "github.com/Artem09076/dp/backend/core_service/internal/presentation/middleware"
 	profilehandlers "github.com/Artem09076/dp/backend/core_service/internal/presentation/profile/handlers"
@@ -65,18 +67,20 @@ func main() {
 
 	validator := jwt.NewValidator(cfg.TokenSecret, redisClient)
 
-	profileService := profile.NewProfileService(queries, log, publisher)
+	profileService := profile.NewProfileService(queries, log, publisher, redisClient)
 	profileHandlers := profilehandlers.NewProfileHandler(profileService, log)
 
-	serviceService := services.NewService(queries, log)
+	serviceService := services.NewService(queries, log, redisClient)
 	serviceHandlers := servicehandlers.NewServiceHandler(serviceService, log)
 
-	discountService := discounts.NewDiscountService(queries, log)
+	discountService := discounts.NewDiscountService(queries, log, redisClient)
 	discountHandlers := discounthandlers.NewDiscountsHandler(discountService, log)
 
-	reviewService := reviews.NewReviewService(queries, log)
+	reviewService := reviews.NewReviewService(queries, log, redisClient)
 	reviewDiscount := reviewhandlers.NewReviewHandler(reviewService, log)
 
+	adminServcie := admin.NewAdminService(queries, log, redisClient)
+	adminHandlers := adminhandler.NewAdminHandler(adminServcie, log)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
@@ -111,7 +115,20 @@ func main() {
 	router.Group(func(r chi.Router) {
 		r.Use(coremiddleware.NewJWTMiddleware(log, validator))
 		r.Use(coremiddleware.NewRoleMiddleware(log, []string{"admin"}))
-		r.Patch("/api/v1/profile/verification_status", profileHandlers.UpdateVerificationStatus())
+		r.Get("/api/v1/admin/performers/unverified", adminHandlers.GetUnverifiedPerformers())
+		r.Get("/api/v1/admin/users", adminHandlers.GetUsers())
+		r.Get("/api/v1/admin/users/{user_id}", adminHandlers.GetUserByID())
+		r.Delete("/api/v1/admin/users/{user_id}", adminHandlers.DeleteUser())
+		r.Post("/api/v1/admin/users/verify/batch", adminHandlers.BatchVerifyPerformers())
+		r.Get("/api/v1/admin/services", adminHandlers.GetServices())
+
+		r.Get("/api/v1/admin/bookings", adminHandlers.GetBookings())
+
+		r.Get("/api/v1/admin/reviews", adminHandlers.GetReviews())
+		r.Delete("/api/v1/admin/reviews/{review_id}", adminHandlers.DeleteReview())
+
+		r.Patch("/api/v1/admin/performers/verification_status", profileHandlers.UpdateVerificationStatus())
+
 	})
 
 	done := make(chan os.Signal, 1)

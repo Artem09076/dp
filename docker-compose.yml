@@ -58,19 +58,21 @@ services:
                 condition: service_healthy
         ports:
         - "50051:50051"
+        - "8084:8084"
         environment:
             CONFIG_PATH: /app/config/config.yml
         restart: unless-stopped
+    
 
-    # frontend:
-    #     build:
-    #         context: ./frontend
-    #     container_name: frontend
-    #     ports:
-    #         - "3000:80"
-    #     depends_on:
-    #         - auth-service
-    #     restart: unless-stopped
+    frontend:
+        build:
+            context: ./frontend
+        container_name: frontend
+        ports:
+            - "3000:80"
+        depends_on:
+            - auth-service
+        restart: unless-stopped
     
     core-service:
         build:

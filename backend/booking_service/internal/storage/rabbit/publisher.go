@@ -6,6 +6,10 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+type PublisherInterface interface {
+	Publish(queue string, msg interface{}) error
+}
+
 type Publisher struct {
 	ch *amqp.Channel
 }

@@ -2,10 +2,14 @@ package discounts
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
+	"time"
 
+	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/discounts/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
+	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
 	"github.com/google/uuid"
 )
 
@@ -18,14 +22,16 @@ type DiscountRepository interface {
 }
 
 type DiscountService struct {
-	repo DiscountRepository
-	log  *slog.Logger
+	repo  DiscountRepository
+	log   *slog.Logger
+	redis *redis.RedisClient
 }
 
-func NewDiscountService(repo DiscountRepository, log *slog.Logger) *DiscountService {
+func NewDiscountService(repo DiscountRepository, log *slog.Logger, redis *redis.RedisClient) *DiscountService {
 	return &DiscountService{
-		repo: repo,
-		log:  log,
+		repo:  repo,
+		log:   log,
+		redis: redis,
 	}
 }
 
@@ -39,18 +45,47 @@ func (s *DiscountService) CheckServiceOwnership(ctx context.Context, userID uuid
 }
 
 func (s *DiscountService) CreateDiscount(ctx context.Context, userID uuid.UUID, serviceID uuid.UUID, params sqlc.CreateDiscountParams) (*sqlc.Discount, error) {
+	owns, err := s.CheckServiceOwnership(ctx, userID, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	if !owns {
+		return nil, apierrors.ErrForbidden
+	}
+
 	res, err := s.repo.CreateDiscount(ctx, params)
 	if err != nil {
 		return nil, err
 	}
+
+	go s.invalidateDiscountCaches(context.Background(), res.ID.String(), serviceID.String())
+
 	return &res, nil
 }
 
 func (s *DiscountService) GetDiscount(ctx context.Context, discountID uuid.UUID) (*sqlc.Discount, error) {
+	cachedDiscount, err := s.redis.GetDiscount(ctx, discountID.String())
+	if err != nil {
+		s.log.Warn("failed to get discount from cache", "error", err)
+	}
+
+	if cachedDiscount != nil {
+		var discount sqlc.Discount
+		if err := json.Unmarshal(cachedDiscount, &discount); err == nil {
+			s.log.Debug("discount retrieved from cache", "discount_id", discountID)
+			return &discount, nil
+		}
+	}
+
 	res, err := s.repo.GetDiscountById(ctx, discountID)
 	if err != nil {
-		return nil, err
+		return nil, apierrors.ErrNotFound
 	}
+
+	if err := s.redis.SetDiscount(ctx, discountID.String(), res, 30*time.Minute); err != nil {
+		s.log.Warn("failed to cache discount", "error", err)
+	}
+
 	return &res, nil
 }
 
@@ -59,6 +94,13 @@ func (s *DiscountService) UpdateDiscount(ctx context.Context, discountID uuid.UU
 	if err != nil {
 		return err
 	}
+
+	if updateDiscountObj.ValidFrom != nil && updateDiscountObj.ValidTo != nil {
+		if updateDiscountObj.ValidFrom.After(*updateDiscountObj.ValidTo) {
+			return apierrors.ErrInvalidInput
+		}
+	}
+
 	param := sqlc.UpdateDiscountParams{
 		ID:        discountID,
 		ValidFrom: discount.ValidFrom,
@@ -74,15 +116,32 @@ func (s *DiscountService) UpdateDiscount(ctx context.Context, discountID uuid.UU
 	if updateDiscountObj.MaxUses != nil {
 		param.MaxUses = int32(*updateDiscountObj.MaxUses)
 	}
+
 	if err := s.repo.UpdateDiscount(ctx, param); err != nil {
 		return err
 	}
+
+	go s.invalidateDiscountCaches(context.Background(), discountID.String(), discount.ServiceID.String())
+
 	return nil
 }
 
 func (s *DiscountService) DeleteDiscount(ctx context.Context, discountID uuid.UUID) error {
+	discount, err := s.repo.GetDiscountById(ctx, discountID)
+	if err != nil {
+		return err
+	}
+
 	if err := s.repo.DeleteDiscount(ctx, discountID); err != nil {
 		return err
 	}
+
+	go s.invalidateDiscountCaches(context.Background(), discountID.String(), discount.ServiceID.String())
+
 	return nil
+}
+
+func (s *DiscountService) invalidateDiscountCaches(ctx context.Context, discountID, serviceID string) {
+	s.redis.InvalidateDiscount(ctx, discountID)
+	s.redis.InvalidateServiceDiscounts(ctx, serviceID)
 }

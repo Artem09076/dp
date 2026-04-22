@@ -3,10 +3,14 @@ package services
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log/slog"
+	"time"
 
+	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/services/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
+	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
 	"github.com/google/uuid"
 )
 
@@ -21,19 +25,21 @@ type ServiceRepository interface {
 }
 
 type Service struct {
-	repo ServiceRepository
-	log  *slog.Logger
+	repo  ServiceRepository
+	log   *slog.Logger
+	redis *redis.RedisClient
 }
 
-func NewService(repo ServiceRepository, log *slog.Logger) *Service {
+func NewService(repo ServiceRepository, log *slog.Logger, redis *redis.RedisClient) *Service {
 	return &Service{
-		repo: repo,
-		log:  log,
+		repo:  repo,
+		log:   log,
+		redis: redis,
 	}
 }
 
 func (s *Service) CheckServiceOwnership(ctx context.Context, userID uuid.UUID, serviceID uuid.UUID) (bool, error) {
-	service, err := s.repo.GetService(ctx, serviceID)
+	service, err := s.GetService(ctx, serviceID)
 	if err != nil {
 		s.log.Error("Failed to get service", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
 		return false, err
@@ -44,18 +50,19 @@ func (s *Service) CheckServiceOwnership(ctx context.Context, userID uuid.UUID, s
 func (s *Service) CreateService(ctx context.Context, createServiceObject dto.CreateServiceRequest) (*sqlc.Service, error) {
 	performer, err := s.repo.GetProfile(ctx, createServiceObject.PerformerID)
 	if err != nil {
-		return nil, err
+		return nil, apierrors.ErrNotFound
 	}
 	if performer.VerificationStatus != "verified" {
-		return nil, err
-		// Нормально распиши
+		return nil, apierrors.ErrPerformerNotVerified
 	}
+
 	var NullDescription sql.NullString
 	if createServiceObject.Description == "" {
 		NullDescription = sql.NullString{String: createServiceObject.Description, Valid: false}
 	} else {
 		NullDescription = sql.NullString{String: createServiceObject.Description, Valid: true}
 	}
+
 	param := sqlc.CreateServiceParams{
 		PerformerID:     createServiceObject.PerformerID,
 		Title:           createServiceObject.Title,
@@ -63,14 +70,31 @@ func (s *Service) CreateService(ctx context.Context, createServiceObject dto.Cre
 		Price:           int64(createServiceObject.Price),
 		DurationMinutes: int32(createServiceObject.DurationMinutes),
 	}
+
 	res, err := s.repo.CreateService(ctx, param)
 	if err != nil {
 		return nil, err
 	}
+
+	go s.invalidateServiceCaches(context.Background(), res.ID.String(), createServiceObject.PerformerID.String())
+
 	return &res, nil
 }
 
 func (s *Service) SearchServices(ctx context.Context, query string, page int, limit int) ([]sqlc.Service, error) {
+	cachedResults, err := s.redis.SearchServices(ctx, query, page, limit)
+	if err != nil {
+		s.log.Warn("failed to get search results from cache", "error", err)
+	}
+
+	if cachedResults != nil {
+		var services []sqlc.Service
+		if err := json.Unmarshal(cachedResults, &services); err == nil {
+			s.log.Debug("search results retrieved from cache", "query", query, "page", page)
+			return services, nil
+		}
+	}
+
 	validQuery := sql.NullString{
 		String: query,
 		Valid:  query != "",
@@ -80,30 +104,94 @@ func (s *Service) SearchServices(ctx context.Context, query string, page int, li
 		Limit:   int32(limit),
 		Offset:  int32((page - 1) * limit),
 	}
-	res, err := s.repo.SearchServices(ctx, param)
+
+	services, err := s.repo.SearchServices(ctx, param)
 	if err != nil {
 		return nil, err
 	}
-	return res, nil
+
+	if err := s.redis.SetSearchServices(ctx, query, page, limit, services, 10*time.Minute); err != nil {
+		s.log.Warn("failed to cache search results", "error", err)
+	}
+
+	return services, nil
 }
 
 func (s *Service) GetService(ctx context.Context, serviceID uuid.UUID) (*sqlc.GetServiceRow, error) {
+	cachedService, err := s.redis.GetService(ctx, serviceID.String())
+	if err != nil {
+		s.log.Warn("failed to get service from cache", "error", err)
+	}
+
+	if cachedService != nil {
+		serviceData, _ := json.Marshal(cachedService)
+		var service sqlc.GetServiceRow
+		if err := json.Unmarshal(serviceData, &service); err == nil {
+			s.log.Debug("service retrieved from cache", "service_id", serviceID)
+			return &service, nil
+		}
+	}
+
 	res, err := s.repo.GetService(ctx, serviceID)
 	if err != nil {
 		return nil, err
 	}
+
+	if err := s.redis.SetService(ctx, serviceID.String(), res, 1*time.Hour); err != nil {
+		s.log.Warn("failed to cache service", "error", err)
+	}
+
 	return &res, nil
 }
 
-func (s *Service) DeleteService(ctx context.Context, serviceID uuid.UUID) error {
-	return s.repo.DeleteService(ctx, serviceID)
+func (s *Service) GetServices(ctx context.Context, userID uuid.UUID) ([]sqlc.Service, error) {
+	cachedServices, err := s.redis.GetServicesList(ctx, userID.String())
+	if err != nil {
+		s.log.Warn("failed to get services list from cache", "error", err)
+	}
+
+	if cachedServices != nil {
+		var services []sqlc.Service
+		if err := json.Unmarshal(cachedServices, &services); err == nil {
+			s.log.Debug("services list retrieved from cache", "performer_id", userID)
+			return services, nil
+		}
+	}
+
+	services, err := s.repo.GetServices(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.redis.SetServicesList(ctx, userID.String(), services, 10*time.Minute); err != nil {
+		s.log.Warn("failed to cache services list", "error", err)
+	}
+
+	return services, nil
 }
 
-func (s *Service) UpdateService(ctx context.Context, serviceID uuid.UUID, updateServiceObject dto.PatchServiceRequest) error {
-	service, err := s.repo.GetService(ctx, serviceID)
+func (s *Service) DeleteService(ctx context.Context, serviceID uuid.UUID) error {
+	service, err := s.GetService(ctx, serviceID)
 	if err != nil {
 		return err
 	}
+
+	err = s.repo.DeleteService(ctx, serviceID)
+	if err != nil {
+		return err
+	}
+
+	go s.invalidateServiceCaches(context.Background(), serviceID.String(), service.PerformerID.String())
+
+	return nil
+}
+
+func (s *Service) UpdateService(ctx context.Context, serviceID uuid.UUID, updateServiceObject dto.PatchServiceRequest) error {
+	service, err := s.GetService(ctx, serviceID)
+	if err != nil {
+		return apierrors.ErrNotFound
+	}
+
 	arg := sqlc.UpdateServiceParams{
 		ID:              serviceID,
 		Title:           service.Title,
@@ -123,14 +211,21 @@ func (s *Service) UpdateService(ctx context.Context, serviceID uuid.UUID, update
 	if updateServiceObject.DurationMinutes != nil {
 		arg.DurationMinutes = int32(*updateServiceObject.DurationMinutes)
 	}
+
 	err = s.repo.UpdateService(ctx, arg)
 	if err != nil {
 		return err
 	}
-	return nil
 
+	go s.invalidateServiceCaches(context.Background(), serviceID.String(), service.PerformerID.String())
+
+	return nil
 }
 
-func (s *Service) GetServices(ctx context.Context, userID uuid.UUID) ([]sqlc.Service, error) {
-	return s.repo.GetServices(ctx, userID)
+func (s *Service) invalidateServiceCaches(ctx context.Context, serviceID, performerID string) {
+	s.redis.InvalidateService(ctx, serviceID)
+	s.redis.InvalidateServicesList(ctx, performerID)
+	s.redis.InvalidateSearchServices(ctx)
+	s.redis.InvalidateServiceDiscounts(ctx, serviceID)
+	s.redis.InvalidateServiceReviews(ctx, serviceID)
 }

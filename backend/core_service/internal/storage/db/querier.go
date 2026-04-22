@@ -11,6 +11,11 @@ import (
 )
 
 type Querier interface {
+	CountAllBookings(ctx context.Context, arg CountAllBookingsParams) (int64, error)
+	CountAllReviews(ctx context.Context, arg CountAllReviewsParams) (int64, error)
+	CountAllServices(ctx context.Context, dollar_1 uuid.UUID) (int64, error)
+	CountUnverifiedPerformers(ctx context.Context) (int64, error)
+	CountUsersWithFilters(ctx context.Context, arg CountUsersWithFiltersParams) (int64, error)
 	CreateDiscount(ctx context.Context, arg CreateDiscountParams) (Discount, error)
 	CreateReview(ctx context.Context, arg CreateReviewParams) (Review, error)
 	CreateService(ctx context.Context, arg CreateServiceParams) (Service, error)
@@ -18,6 +23,10 @@ type Querier interface {
 	DeleteProfile(ctx context.Context, id uuid.UUID) error
 	DeleteReview(ctx context.Context, id uuid.UUID) error
 	DeleteService(ctx context.Context, id uuid.UUID) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetAllBookings(ctx context.Context, arg GetAllBookingsParams) ([]GetAllBookingsRow, error)
+	GetAllReviews(ctx context.Context, arg GetAllReviewsParams) ([]GetAllReviewsRow, error)
+	GetAllServices(ctx context.Context, arg GetAllServicesParams) ([]GetAllServicesRow, error)
 	GetBookingByID(ctx context.Context, id uuid.UUID) (GetBookingByIDRow, error)
 	GetDiscountById(ctx context.Context, id uuid.UUID) (Discount, error)
 	GetProfile(ctx context.Context, id uuid.UUID) (GetProfileRow, error)
@@ -26,6 +35,9 @@ type Querier interface {
 	GetReviewsByServiceID(ctx context.Context, arg GetReviewsByServiceIDParams) ([]Review, error)
 	GetService(ctx context.Context, id uuid.UUID) (GetServiceRow, error)
 	GetServices(ctx context.Context, performerID uuid.UUID) ([]Service, error)
+	GetUnverifiedPerformers(ctx context.Context, arg GetUnverifiedPerformersParams) ([]GetUnverifiedPerformersRow, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
+	GetUsersWithFilters(ctx context.Context, arg GetUsersWithFiltersParams) ([]GetUsersWithFiltersRow, error)
 	ListServices(ctx context.Context) ([]Service, error)
 	SearchServices(ctx context.Context, arg SearchServicesParams) ([]Service, error)
 	UpdateDiscount(ctx context.Context, arg UpdateDiscountParams) error
@@ -33,6 +45,8 @@ type Querier interface {
 	UpdateProfileVerificationStatus(ctx context.Context, arg UpdateProfileVerificationStatusParams) error
 	UpdateReview(ctx context.Context, arg UpdateReviewParams) error
 	UpdateService(ctx context.Context, arg UpdateServiceParams) error
+	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) error
+	UpdateVerificationStatus(ctx context.Context, arg UpdateVerificationStatusParams) error
 }
 
 var _ Querier = (*Queries)(nil)

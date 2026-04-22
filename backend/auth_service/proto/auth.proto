@@ -2,12 +2,33 @@ syntax = "proto3";
 
 package auth;
 option go_package = "/proto/gen/auth;authpb";
+import "google/api/annotations.proto";
 
 service AuthService {
-  rpc Register (RegisterRequest) returns (AuthResponse);
-  rpc Login (LoginRequest) returns (AuthResponse);
-  rpc RefreshToken (RefreshTokenRequest) returns (AuthResponse);
-  rpc Logout (LogoutRequest) returns (LogoutResponse);
+  rpc Register (RegisterRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/register"
+      body: "*"
+    };
+  }
+  rpc Login (LoginRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/login"
+      body: "*"
+    };
+  }
+  rpc RefreshToken (RefreshTokenRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/refresh"
+      body: "*"
+    };
+  }
+  rpc Logout (LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/logout"
+      body: "*"
+    };
+  }
 }
 
 message RegisterRequest {

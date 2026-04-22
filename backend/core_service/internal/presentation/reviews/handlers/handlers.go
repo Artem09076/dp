@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
 	handlerlib "github.com/Artem09076/dp/backend/core_service/internal/lib/api/handler"
-	"github.com/Artem09076/dp/backend/core_service/internal/lib/api/response"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/reviews/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/go-chi/chi/v5"
@@ -54,29 +54,30 @@ func (h *ReviewHandler) convertToReviewResponse(review *sqlc.Review) dto.ReviewR
 
 func (h *ReviewHandler) CreateReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With("op", "reviews.handlers.CreateReview")
+		const op = "reviews.handlers.CreateReview"
+		log := h.log.With("op", op)
 		w.Header().Set("Content-Type", "application/json")
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, apierrors.ErrUnauthorized, op)
 			return
 		}
 
 		var req dto.CreateReviewRequest
 		if err := render.DecodeJSON(r.Body, &req); err != nil {
 			log.Error("Failed to decode request body", "error", err.Error())
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 		review, err := h.service.CreateReview(r.Context(), userID, req)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 		resp := h.convertToReviewResponse(review)
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 	}
@@ -84,34 +85,35 @@ func (h *ReviewHandler) CreateReview() http.HandlerFunc {
 
 func (h *ReviewHandler) GetReviewByBookingID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With("op", "reviews.handlers.GetReviewByBookingID")
+		const op = "reviews.handlers.GetReviewByBookingID"
+		log := h.log.With("op", op)
 		w.Header().Set("Content-Type", "application/json")
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, apierrors.ErrUnauthorized, op)
 			return
 		}
 		bookingIDStr := chi.URLParam(r, "bookingID")
 		if bookingIDStr == "" {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		bookingID, err := uuid.Parse(bookingIDStr)
 		if err != nil {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		review, err := h.service.GetReviewByBookingID(r.Context(), userID, bookingID)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 		resp := h.convertToReviewResponse(review)
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 	}
@@ -119,24 +121,25 @@ func (h *ReviewHandler) GetReviewByBookingID() http.HandlerFunc {
 
 func (h *ReviewHandler) GetReviewsByServiceID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With("op", "reviews.handlers.GetReviewsByServiceID")
+		const op = "reviews.handlers.GetReviewsByServiceID"
+		log := h.log.With("op", op)
 		w.Header().Set("Content-Type", "application/json")
 		serviceIDStr := chi.URLParam(r, "serviceID")
 		if serviceIDStr == "" {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		serviceID, err := uuid.Parse(serviceIDStr)
 		if err != nil {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		page, limit := handlerlib.GetPaginationParams(r.Context())
 		reviews, err := h.service.GetReviewsByServiceID(r.Context(), serviceID, page, limit)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 		responses := make([]dto.ReviewResponse, len(reviews))
@@ -154,7 +157,7 @@ func (h *ReviewHandler) GetReviewsByServiceID() http.HandlerFunc {
 		}
 		if err := json.NewEncoder(w).Encode(responses); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 	}
@@ -162,35 +165,36 @@ func (h *ReviewHandler) GetReviewsByServiceID() http.HandlerFunc {
 
 func (h *ReviewHandler) PatchReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With("op", "reviews.handlers.PatchReview")
+		const op = "reviews.handlers.PatchReview"
+		log := h.log.With("op", op)
 		w.Header().Set("Content-Type", "application/json")
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 		reviewIDStr := chi.URLParam(r, "reviewID")
 		if reviewIDStr == "" {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		reviewID, err := uuid.Parse(reviewIDStr)
 		if err != nil {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		var req dto.PatchReviewRequest
 		if err := render.DecodeJSON(r.Body, &req); err != nil {
 			log.Error("Failed to decode request body", "error", err.Error())
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		err = h.service.PatchReview(r.Context(), userID, reviewID, req)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -199,29 +203,30 @@ func (h *ReviewHandler) PatchReview() http.HandlerFunc {
 
 func (h *ReviewHandler) DeleteReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		const op = "reviews.handlers.DeleteReview"
 		log := h.log.With("op", "reviews.handlers.DeleteReview")
 		w.Header().Set("Content-Type", "application/json")
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, apierrors.ErrUnauthorized, op)
 			return
 		}
 		reviewIDStr := chi.URLParam(r, "reviewID")
 		if reviewIDStr == "" {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		reviewID, err := uuid.Parse(reviewIDStr)
 		if err != nil {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		err = h.service.DeleteReview(r.Context(), userID, reviewID)
 		if err != nil {
 			log.Error("Failed to delete review", "error", err.Error())
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -230,45 +235,38 @@ func (h *ReviewHandler) DeleteReview() http.HandlerFunc {
 
 func (h *ReviewHandler) GetReviewByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := h.log.With("op", "reviews.handlers.GetReviewByID")
+		const op = "reviews.handlers.GetReviewByID"
+		log := h.log.With("op", op)
 		w.Header().Set("Content-Type", "application/json")
 		reviewIDStr := chi.URLParam(r, "reviewID")
 		if reviewIDStr == "" {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		reviewID, err := uuid.Parse(reviewIDStr)
 		if err != nil {
-			h.handleError(w, r, handlerlib.ErrInvalidInput)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		review, err := h.service.GetReviewByID(r.Context(), reviewID)
 		if err != nil {
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, op)
 			return
 		}
 		resp := h.convertToReviewResponse(review)
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("Failed to encode response", "error", err.Error())
-			h.handleError(w, r, err)
+			h.WriteError(w, r, err, r.Response.Request.URL.Opaque)
 			return
 		}
 	}
 }
-func (h *ReviewHandler) handleError(w http.ResponseWriter, r *http.Request, err error) {
-	switch err {
-	case handlerlib.ErrNotFound:
-		w.WriteHeader(http.StatusNotFound)
-	case handlerlib.ErrForbidden:
-		w.WriteHeader(http.StatusForbidden)
-	case handlerlib.ErrInvalidInput:
-		w.WriteHeader(http.StatusBadRequest)
-	case handlerlib.ErrAlreadyDone:
-		w.WriteHeader(http.StatusConflict)
-	default:
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-	render.JSON(w, r, response.Error(err.Error()))
+
+func (h *ReviewHandler) WriteError(w http.ResponseWriter, r *http.Request, err error, op string) {
+	apiErr := apierrors.MapError(err)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(apiErr.StatusCode)
+	render.JSON(w, r, apierrors.NewErrorResponse(err))
 }

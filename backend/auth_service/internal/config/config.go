@@ -12,6 +12,7 @@ type Config struct {
 	Env             string        `yaml:"env" env-required:"true"`
 	DBPath          string        `yaml:"db_path" env-required:"true"`
 	GRPC            GRPCConfig    `yaml:"grpc"`
+	Gateway         GatewayConfig `yaml:"gateway"`
 	TokenAccessTTL  time.Duration `yaml:"token_accessTTL" env-required:"true"`
 	TokenRefreshTTL time.Duration `yaml:"token_refreshTTL" env-required:"true"`
 	TokenSecret     string        `yaml:"token_secret" env-required:"true"`
@@ -27,6 +28,10 @@ type RedisConfig struct {
 	Addr     string `yaml:"address" env-required:"true"`
 	Password string `yaml:"password"`
 	DB       int    `yaml:"db"`
+}
+
+type GatewayConfig struct {
+	Port uint `yaml:"port" env-required:"true"`
 }
 
 func LoadConfig() *Config {

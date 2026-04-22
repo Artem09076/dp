@@ -17,17 +17,33 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type AuthDBRepository interface {
+	CreateUser(ctx context.Context, arg sqlc.CreateUserParams) (sqlc.User, error)
+	GetUserByEmail(ctx context.Context, email string) (sqlc.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (sqlc.User, error)
+	GetUserByInn(ctx context.Context, inn sql.NullString) (sqlc.User, error)
+}
+
+type AuthRedisRepository interface {
+	BlacklistToken(ctx context.Context, token string, ttl time.Duration) error
+	DeleteSession(ctx context.Context, userID uuid.UUID, deviceID string) error
+	GetSession(ctx context.Context, userID uuid.UUID, deviceID string) (*redis.SessionData, error)
+	GetUserActiveDevices(ctx context.Context, userID uuid.UUID) (int64, error)
+	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
+	SaveSession(ctx context.Context, userID uuid.UUID, deviceID string, refreshToken string, ipAddress string, ttl time.Duration) error
+}
+
 type Auth struct {
 	log             *slog.Logger
-	queries         *sqlc.Queries
-	redis           *redis.RedisClient
+	queries         AuthDBRepository
+	redis           AuthRedisRepository
 	tokenAccessTTL  time.Duration
 	tokenRefreshTTL time.Duration
 	tokenSecret     string
 	maxDevices      int
 }
 
-func New(log *slog.Logger, queries *sqlc.Queries, redis *redis.RedisClient, tokenAccessTTL, tokenRefreshTTL time.Duration, tokenSecret string, maxDevices int) *Auth {
+func New(log *slog.Logger, queries AuthDBRepository, redis AuthRedisRepository, tokenAccessTTL, tokenRefreshTTL time.Duration, tokenSecret string, maxDevices int) *Auth {
 	return &Auth{
 		log:             log,
 		queries:         queries,

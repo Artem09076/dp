@@ -13,9 +13,22 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 	log := logger.SetupLogger(cfg.Env)
-	appl := app.New(log, cfg.GRPC.Port, cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB, cfg.DBPath, cfg.TokenAccessTTL, cfg.TokenRefreshTTL, cfg.TokenSecret)
+	appl := app.New(log, cfg.GRPC.Port, cfg.Gateway.Port, cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB, cfg.DBPath, cfg.TokenAccessTTL, cfg.TokenRefreshTTL, cfg.TokenSecret)
 
-	go appl.GRPCServ.Run()
+	go func() {
+		if err := appl.RunGRPCServer(); err != nil {
+			log.Error("Failed to start gRPC server", "error", err)
+			panic(err)
+		}
+	}()
+
+	go func() {
+		if err := appl.RunGatewayServer(); err != nil {
+			log.Error("Failed to start Gateway server", "error", err)
+			panic(err)
+		}
+	}()
+
 	end := make(chan os.Signal, 1)
 	signal.Notify(end, syscall.SIGINT, syscall.SIGTERM)
 	log.Info("auth service started")

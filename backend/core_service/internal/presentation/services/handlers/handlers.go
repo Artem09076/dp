@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
 	handlerlib "github.com/Artem09076/dp/backend/core_service/internal/lib/api/handler"
-	"github.com/Artem09076/dp/backend/core_service/internal/lib/api/response"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/services/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/go-chi/chi/v5"
@@ -56,21 +56,38 @@ func (h *ServiceHandler) convertToServiceResponse(service *sqlc.Service) dto.Ser
 	return resp
 }
 
+func (h *ServiceHandler) convertToServiceRowResponse(service *sqlc.GetServiceRow) dto.ServiceResponse {
+	resp := dto.ServiceResponse{
+		ID:              service.ID.String(),
+		PerformerID:     service.PerformerID.String(),
+		Title:           service.Title,
+		Price:           service.Price,
+		DurationMinutes: service.DurationMinutes,
+		CreatedAt:       service.CreatedAt.String(),
+		UpdatedAt:       service.UpdatedAt.String(),
+		AverageRating:   service.AverageRating,
+	}
+
+	if service.Description.Valid {
+		resp.Description = &service.Description.String
+	}
+
+	return resp
+}
+
 func (h *ServiceHandler) CreateService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.CreateService"
-		log := h.log.With(slog.String("op", op))
+		w.Header().Set("Content-Type", "application/json")
+
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+			h.WriteError(w, r, apierrors.ErrUnauthorized, op)
 			return
 		}
 		var body dto.CreateServiceRequest
-
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, "can't decode JSON body", http.StatusBadRequest)
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
@@ -78,15 +95,12 @@ func (h *ServiceHandler) CreateService() http.HandlerFunc {
 
 		service, err := h.service.CreateService(r.Context(), body)
 		if err != nil {
-			log.Error("internal server error", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("internal server error"))
+			h.WriteError(w, r, err, op)
 			return
 		}
 
 		resp := h.convertToServiceResponse(service)
 
-		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
@@ -98,7 +112,7 @@ func (h *ServiceHandler) CreateService() http.HandlerFunc {
 func (h *ServiceHandler) SearchServices() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.SearchServices"
-		log := h.log.With(slog.String("op", op))
+		w.Header().Set("Content-Type", "application/json")
 
 		query := r.URL.Query().Get("query")
 		page := r.URL.Query().Get("page")
@@ -109,27 +123,22 @@ func (h *ServiceHandler) SearchServices() http.HandlerFunc {
 		if limit == "" {
 			limit = "10"
 		}
+
 		pageInt, err := strconv.Atoi(page)
 		if err != nil || pageInt < 1 {
-			log.Error("Invalid page parameter", slog.String("page", page))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid page parameter"))
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		limitInt, err := strconv.Atoi(limit)
-		if err != nil || limitInt < 1 {
-			log.Error("Invalid limit parameter", slog.String("limit", limit))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid limit parameter"))
+		if err != nil || limitInt < 1 || limitInt > 100 {
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		services, err := h.service.SearchServices(r.Context(), query, pageInt, limitInt)
 		if err != nil {
-			log.Error("internal server error", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("internal server error"))
+			h.WriteError(w, r, err, op)
 			return
 		}
 
@@ -149,7 +158,6 @@ func (h *ServiceHandler) SearchServices() http.HandlerFunc {
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(responses); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
@@ -161,66 +169,45 @@ func (h *ServiceHandler) SearchServices() http.HandlerFunc {
 func (h *ServiceHandler) GetService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.GetService"
-		log := h.log.With(slog.String("op", op))
+		w.Header().Set("Content-Type", "application/json")
+
 		serviceIDStr := chi.URLParam(r, "id")
 		serviceID, err := uuid.Parse(serviceIDStr)
 		if err != nil {
-			log.Error("Failed to parse service_id", slog.String("service_id", serviceIDStr))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid service_id"))
-			return
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 		}
 
 		service, err := h.service.GetService(r.Context(), serviceID)
 		if err != nil {
-			log.Error("internal server error", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("internal server error"))
+			h.WriteError(w, r, err, op)
 			return
 		}
 
-		resp := dto.ServiceResponse{
-			ID:              service.ID.String(),
-			PerformerID:     service.PerformerID.String(),
-			Title:           service.Title,
-			Price:           service.Price,
-			DurationMinutes: service.DurationMinutes,
-			CreatedAt:       service.CreatedAt.String(),
-			UpdatedAt:       service.UpdatedAt.String(),
-			AverageRating:   service.AverageRating,
-		}
-
-		if service.Description.Valid {
-			resp.Description = &service.Description.String
-		}
-
-		w.Header().Set("Content-Type", "application/json")
+		resp := h.convertToServiceRowResponse(service)
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}
-
 	}
 }
 
 func (h *ServiceHandler) GetServices() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "service.handlers.DeleteService"
-		log := h.log.With(slog.String("op", op))
+		const op = "service.handlers.GetServices"
 		w.Header().Set("Content-Type", "application/json")
+
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+			h.WriteError(w, r, apierrors.ErrUnauthorized, op)
 			return
 		}
+
 		services, err := h.service.GetServices(r.Context(), userID)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("Internal server error"))
+			h.WriteError(w, r, err, op)
 			return
 		}
+
 		responses := make([]dto.ServiceResponse, len(services))
 		for i, service := range services {
 			responses[i] = dto.ServiceResponse{
@@ -236,49 +223,41 @@ func (h *ServiceHandler) GetServices() http.HandlerFunc {
 				responses[i].Description = &service.Description.String
 			}
 		}
+
 		if err := json.NewEncoder(w).Encode(responses); err != nil {
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 			return
 		}
-
 	}
 }
 
 func (h *ServiceHandler) DeleteService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.DeleteService"
-		log := h.log.With(slog.String("op", op))
+		w.Header().Set("Content-Type", "application/json")
+
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+			h.WriteError(w, r, apierrors.ErrUnauthorized, op)
 			return
 		}
+
 		serviceIDStr := chi.URLParam(r, "id")
 		serviceID, err := uuid.Parse(serviceIDStr)
 		if err != nil {
-			log.Error("Failed to parse service_id", slog.String("service_id", serviceIDStr))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid service_id"))
-			return
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 		}
+
 		if ok, err := h.service.CheckServiceOwnership(r.Context(), userID, serviceID); err != nil {
-			log.Error("Failed to check service ownership", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("failed to check service ownership"))
+			h.WriteError(w, r, err, op)
 			return
 		} else if !ok {
-			log.Warn("User does not own the service", slog.String("userID", userID.String()), slog.String("serviceID", serviceID.String()))
-			w.WriteHeader(http.StatusForbidden)
-			render.JSON(w, r, response.Error("you do not have permission to create a discount for this service"))
+			h.WriteError(w, r, apierrors.ErrForbidden, op)
 			return
 		}
-		err = h.service.DeleteService(r.Context(), serviceID)
-		if err != nil {
-			log.Error("internal server error", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("internal server error"))
+
+		if err := h.service.DeleteService(r.Context(), serviceID); err != nil {
+			h.WriteError(w, r, err, op)
 			return
 		}
 
@@ -289,48 +268,46 @@ func (h *ServiceHandler) DeleteService() http.HandlerFunc {
 func (h *ServiceHandler) PatchService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.PatchService"
-		log := h.log.With(slog.String("op", op))
+		w.Header().Set("Content-Type", "application/json")
+
 		userID, err := handlerlib.GetUserIDFromClaims(r.Context())
 		if err != nil {
-			log.Error(err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
+			h.WriteError(w, r, apierrors.ErrUnauthorized, op)
 			return
 		}
+
 		serviceIDStr := chi.URLParam(r, "id")
 		serviceID, err := uuid.Parse(serviceIDStr)
 		if err != nil {
-			log.Error("Failed to parse service_id", slog.String("service_id", serviceIDStr))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid service_id"))
-			return
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 		}
 		if ok, err := h.service.CheckServiceOwnership(r.Context(), userID, serviceID); err != nil {
-			log.Error("Failed to check service ownership", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("failed to check service ownership"))
+			h.WriteError(w, r, err, op)
 			return
 		} else if !ok {
-			log.Warn("User does not own the service", slog.String("userID", userID.String()), slog.String("serviceID", serviceID.String()))
-			w.WriteHeader(http.StatusForbidden)
-			render.JSON(w, r, response.Error("you do not have permission to create a discount for this service"))
+			h.WriteError(w, r, apierrors.ErrForbidden, op)
 			return
 		}
+
 		var updateServiceObject dto.PatchServiceRequest
 		if err := json.NewDecoder(r.Body).Decode(&updateServiceObject); err != nil {
-			log.Error("Failed to decode request body", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, response.Error("invalid request body"))
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
 
 		if err := h.service.UpdateService(r.Context(), serviceID, updateServiceObject); err != nil {
-			log.Error("internal server error", slog.String("Error", err.Error()))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("internal server error"))
+			h.WriteError(w, r, err, op)
 			return
 		}
 
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+func (h *ServiceHandler) WriteError(w http.ResponseWriter, r *http.Request, err error, op string) {
+	h.log.Error(op, slog.String("error", err.Error()))
+	apiErr := apierrors.MapError(err)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(apiErr.StatusCode)
+	render.JSON(w, r, apierrors.NewErrorResponse(err))
 }

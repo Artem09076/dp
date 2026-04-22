@@ -2,11 +2,14 @@ package profile
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
+	"time"
 
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/profile/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/rabbit"
+	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
 	"github.com/google/uuid"
 )
 
@@ -21,21 +24,42 @@ type ProfileService struct {
 	repo      ProfileRepository
 	log       *slog.Logger
 	publisher *rabbit.Publisher
+	redis     *redis.RedisClient
 }
 
-func NewProfileService(repo ProfileRepository, log *slog.Logger, publisher *rabbit.Publisher) *ProfileService {
+func NewProfileService(repo ProfileRepository, log *slog.Logger, publisher *rabbit.Publisher, redis *redis.RedisClient) *ProfileService {
 	return &ProfileService{
 		repo:      repo,
 		log:       log,
 		publisher: publisher,
+		redis:     redis,
 	}
 }
 
 func (s *ProfileService) GetProfile(ctx context.Context, userID uuid.UUID) (*sqlc.GetProfileRow, error) {
+	cachedProfile, err := s.redis.GetProfile(ctx, userID.String())
+	if err != nil {
+		s.log.Warn("failed to get profile from cache", "error", err)
+	}
+
+	if cachedProfile != nil {
+		profileData, _ := json.Marshal(cachedProfile)
+		var profile sqlc.GetProfileRow
+		if err := json.Unmarshal(profileData, &profile); err == nil {
+			s.log.Debug("profile retrieved from cache", "user_id", userID)
+			return &profile, nil
+		}
+	}
+
 	res, err := s.repo.GetProfile(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
+
+	if err := s.redis.SetProfile(ctx, userID.String(), res, 15*time.Minute); err != nil {
+		s.log.Warn("failed to cache profile", "error", err)
+	}
+
 	return &res, nil
 }
 
@@ -44,6 +68,7 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, userID uuid.UUID, up
 	if err != nil {
 		return err
 	}
+
 	arg := sqlc.UpdateProfileParams{
 		ID:    userID,
 		Name:  profile.Name,
@@ -55,15 +80,20 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, userID uuid.UUID, up
 	if updateProfileObject.Name != "" {
 		arg.Name = updateProfileObject.Name
 	}
+
 	err = s.repo.UpdateProfile(ctx, arg)
 	if err != nil {
 		return err
 	}
-	return nil
 
+	go s.redis.InvalidateProfile(context.Background(), userID.String())
+
+	return nil
 }
 
 func (s *ProfileService) DeleteProfile(ctx context.Context, userID uuid.UUID) error {
+	go s.redis.InvalidateProfile(context.Background(), userID.String())
+
 	return s.repo.DeleteProfile(ctx, userID)
 }
 
@@ -76,13 +106,21 @@ func (s *ProfileService) UpdateVerificationStatus(ctx context.Context, userID uu
 		ID:                 userID,
 		VerificationStatus: verificationStatusValue.VerificationStatus,
 	}
+
 	if verificationStatus == "verified" {
 		go s.publishEvent(ProfileVerificationStatusUpdatedSubmit, userID)
 	} else if verificationStatus == "rejected" {
 		go s.publishEvent(ProfileVerificationStatusUpdatedReject, userID)
 	}
 
-	return s.repo.UpdateProfileVerificationStatus(ctx, arg)
+	err := s.repo.UpdateProfileVerificationStatus(ctx, arg)
+	if err != nil {
+		return err
+	}
+
+	go s.redis.InvalidateProfile(context.Background(), userID.String())
+
+	return nil
 }
 
 func (s *ProfileService) publishEvent(event ProfileEventType, userID uuid.UUID) {

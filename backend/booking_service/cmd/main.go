@@ -59,7 +59,7 @@ func main() {
 
 	validator := jwt.NewValidator(cfg.TokenSecret, redisClient)
 
-	bookingService := booking.NewBookingService(queries, db, log, publisher)
+	bookingService := booking.NewBookingService(queries, db, log, publisher, redisClient)
 	bookingHandlers := bookinghandlers.NewBookingHandler(bookingService, log)
 
 	router.Use(middleware.Recoverer)
