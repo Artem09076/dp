@@ -18,3 +18,11 @@ WHERE id = $1;
 
 -- name: DeleteDiscount :exec
 DELETE FROM discounts WHERE id = $1;
+
+-- name: GetDiscountsByServiceID :many
+SELECT * FROM discounts 
+WHERE service_id = $1 
+  AND valid_from <= NOW() 
+  AND valid_to >= NOW()
+  AND used_count < max_uses
+ORDER BY created_at DESC;

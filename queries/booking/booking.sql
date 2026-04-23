@@ -87,3 +87,23 @@ WHERE id = $1;
 
 -- name: DeleteBooking :exec
 DELETE FROM bookings WHERE id = $1;
+
+
+-- name: GetBookingsWithServiceInfo :many
+SELECT 
+    b.*,
+    s.title AS service_title,
+    s.performer_id
+FROM bookings b
+JOIN services s ON b.service_id = s.id
+WHERE b.client_id = $1
+ORDER BY b.booking_time DESC;
+
+-- name: GetBookingsByPerformerWithServiceInfo :many
+SELECT 
+    b.*,
+    s.title AS service_title
+FROM bookings b
+JOIN services s ON b.service_id = s.id
+WHERE s.performer_id = $1
+ORDER BY b.booking_time DESC;

@@ -19,6 +19,7 @@ type DiscountRepository interface {
 	GetDiscountById(ctx context.Context, id uuid.UUID) (sqlc.Discount, error)
 	UpdateDiscount(ctx context.Context, arg sqlc.UpdateDiscountParams) error
 	DeleteDiscount(ctx context.Context, id uuid.UUID) error
+	GetDiscountsByServiceID(ctx context.Context, serviceID uuid.UUID) ([]sqlc.Discount, error)
 }
 
 type DiscountService struct {
@@ -89,6 +90,34 @@ func (s *DiscountService) GetDiscount(ctx context.Context, discountID uuid.UUID)
 	return &res, nil
 }
 
+func (s *DiscountService) GetDiscountsByServiceID(ctx context.Context, serviceID uuid.UUID) ([]sqlc.Discount, error) {
+
+	cachedDiscounts, err := s.redis.GetServiceDiscounts(ctx, serviceID.String())
+	if err != nil {
+		s.log.Warn("failed to get service discounts from cache", "error", err, "service_id", serviceID)
+	}
+
+	if cachedDiscounts != nil {
+		var discounts []sqlc.Discount
+		if err := json.Unmarshal(cachedDiscounts, &discounts); err == nil {
+			s.log.Debug("discounts retrieved from cache", "service_id", serviceID, "count", len(discounts))
+			return discounts, nil
+		}
+	}
+
+	discounts, err := s.repo.GetDiscountsByServiceID(ctx, serviceID)
+	if err != nil {
+		s.log.Error("failed to get discounts by service ID", "error", err, "service_id", serviceID)
+		return nil, err
+	}
+
+	if err := s.redis.SetServiceDiscounts(ctx, serviceID.String(), discounts, 10*time.Minute); err != nil {
+		s.log.Warn("failed to cache service discounts", "error", err, "service_id", serviceID)
+	}
+
+	s.log.Debug("discounts retrieved from database", "service_id", serviceID, "count", len(discounts))
+	return discounts, nil
+}
 func (s *DiscountService) UpdateDiscount(ctx context.Context, discountID uuid.UUID, updateDiscountObj dto.PatchDiscountRequest) error {
 	discount, err := s.repo.GetDiscountById(ctx, discountID)
 	if err != nil {

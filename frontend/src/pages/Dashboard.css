@@ -1,0 +1,214 @@
+.dashboard {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 70px);
+  background: white;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-top: 2rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.search-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 900px;
+  margin: 2rem auto;
+  width: 100%;
+}
+
+.search-section h2 {
+  font-size: 1.5rem;
+  color: #666;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: normal;
+}
+
+/* Стили для поисковой строки */
+.search-section .service-list {
+  width: 100%;
+  background: white;
+}
+
+.search-section .search-bar {
+  margin-bottom: 2rem;
+  width: 100%;
+  position: relative;
+}
+
+.search-section .search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-section .search-input {
+  width: 100%;
+  padding: 1rem 4rem 1rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 50px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  transition: all 0.3s;
+  box-sizing: border-box;
+}
+
+.search-section .search-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
+  outline: none;
+}
+
+.search-section .search-clear {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 1.2rem;
+  padding: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+  z-index: 10;
+}
+
+.search-section .search-clear:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.search-section .search-spinner {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.search-section .spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.search-section .services-grid {
+  margin-top: 2rem;
+  width: 100%;
+}
+
+/* Стили для карточек услуг */
+.search-section .service-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+}
+
+.search-section .service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.search-section .service-card h3 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.search-section .service-card .price {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #667eea;
+  margin: 0.5rem 0;
+}
+
+.search-section .service-card .duration {
+  color: #666;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.search-section .service-card .description {
+  color: #666;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+  line-height: 1.4;
+}
+
+.search-section .service-card .rating {
+  margin: 0.75rem 0;
+  color: #ffc107;
+  font-size: 0.85rem;
+}
+
+.no-services {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+  background: white;
+  border-radius: 16px;
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 1rem;
+  }
+  
+  .dashboard-header {
+    padding-top: 1rem;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .dashboard-header p {
+    font-size: 1rem;
+  }
+  
+  .search-section {
+    max-width: 100%;
+  }
+  
+  .search-section h2 {
+    font-size: 1.2rem;
+  }
+  
+  .search-section .search-input {
+    padding: 0.875rem 3.5rem 0.875rem 1rem;
+    font-size: 0.95rem;
+  }
+  
+  .search-section .services-grid {
+    grid-template-columns: 1fr;
+  }
+}

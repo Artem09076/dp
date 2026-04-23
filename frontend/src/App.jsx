@@ -1,60 +1,59 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, App as AntApp, Spin } from 'antd';
-import ruRU from 'antd/locale/ru_RU';
-import { antdTheme } from './theme/antdTheme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import MainLayout from './components/Layout/MainLayout';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import Dashboard from './pages/Dashboard';
+import BookingsPage from './pages/BookingsPage';
+import MyServicesPage from './pages/MyServicesPage';
+import ClientServiceDetailPage from './pages/ClientServiceDetailPage';
+import PerformerServiceDetailPage from './pages/PerformerServiceDetailPage';
+import Profile from './components/profile/Profile';
+import AdminPanel from './components/admin/AdminPanel';
+import Navbar from './components/common/Navbar';
+import PrivateRoute from './components/common/PrivateRoute';
+import ClientBookingDetailPage from './pages/ClientBookingDetailPage';
+import PerformerBookingDetailPage from './pages/PerformerBookingDetailPage';
 import './App.css';
 
-const PrivateRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-  
+const AppContent = () => {
+  const { user, loading, userRole } = useAuth();
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
+      <div className="loading-container">
+        <div className="loader"></div>
       </div>
     );
   }
-  
-  return isAuthenticated ? children : <Navigate to="/login" />;
-};
 
-function AppContent() {
   return (
-    <Routes>
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route
-          path="dashboard"
-          element={
-            <PrivateRoute>
-              <div style={{ padding: 24 }}>Dashboard - в разработке</div>
-            </PrivateRoute>
-          }
-        />
-      </Route>
-    </Routes>
+    <>
+      {user && <Navbar />}
+      <Routes>
+        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+        <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+        <Route path="/" element={user ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="/bookings" element={<PrivateRoute><BookingsPage /></PrivateRoute>} />
+        <Route path="/my-services" element={<PrivateRoute><MyServicesPage /></PrivateRoute>} />
+        <Route path="/services/client/:id" element={<PrivateRoute><ClientServiceDetailPage /></PrivateRoute>} />
+        <Route path="/services/performer/:id" element={<PrivateRoute requiredRole="performer"><PerformerServiceDetailPage /></PrivateRoute>} />
+        <Route path="/bookings/client/:id" element={<PrivateRoute><ClientBookingDetailPage /></PrivateRoute>} />
+        <Route path="/bookings/performer/:id" element={<PrivateRoute requiredRole="performer"><PerformerBookingDetailPage /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/admin" element={<PrivateRoute requiredRole="admin"><AdminPanel /></PrivateRoute>} />
+      </Routes>
+    </>
   );
-}
+};
 
 function App() {
   return (
-    <ConfigProvider theme={antdTheme} locale={ruRU}>
-      <AntApp>
-        <Router>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </Router>
-      </AntApp>
-    </ConfigProvider>
+    <Router>
+      <AuthProvider>
+        <AppContent/>
+      </AuthProvider>
+    </Router>
   );
 }
 

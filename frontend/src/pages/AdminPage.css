@@ -1,0 +1,22 @@
+.admin-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.access-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+
+.access-denied h2 {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.access-denied p {
+  color: #666;
+}

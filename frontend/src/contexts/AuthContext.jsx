@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi } from '../api/authClient';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import authAPI from '../api/auth';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -11,102 +11,140 @@ export const useAuth = () => {
   return context;
 };
 
+// Вспомогательная функция для проверки валидности токена (не хук!)
+const isTokenValid = () => {
+  const token = localStorage.getItem('accessToken');
+  if (!token) return false;
+  
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp * 1000;
+    return Date.now() < exp;
+  } catch {
+    return false;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
+  // Функция для проверки аутентификации
+  const isAuthenticated = () => {
+    return !!localStorage.getItem('accessToken');
+  };
+
+  // Эффект для инициализации и периодической проверки токена
   useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        const userData = authApi.getUserFromToken();
-        if (userData) {
-          setUser(userData);
-          setIsAuthenticated(true);
-        } else {
-          // Токен невалидный
-          authApi.clearTokens();
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      const savedRole = localStorage.getItem('userRole');
+      if (savedRole) {
+        setUserRole(savedRole);
+        setUser({ authenticated: true, role: savedRole });
+      } else {
+        setUser({ authenticated: true });
+      }
+    }
+    setLoading(false);
+
+    const handleLogout = () => {
+      setUser(null);
+      setUserRole(null);
+    };
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
+  }, []);
+
+  // Эффект для периодической проверки токена (вынесен внутрь компонента)
+  useEffect(() => {
+    const checkToken = async () => {
+      if (isAuthenticated() && !isTokenValid()) {
+        const refreshed = await authAPI.refreshToken();
+        if (!refreshed) {
+          logout();
         }
       }
-      setLoading(false);
     };
+    
+    const interval = setInterval(checkToken, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []); // Пустой массив зависимостей - эффект запускается один раз при монтировании
 
-    initAuth();
-  }, []);
-
-  const register = useCallback(async (userData) => {
+  const login = async (credentials) => {
     try {
-      const response = await authApi.register(userData);
-      const userFromToken = authApi.getUserFromToken();
-      setUser(userFromToken);
-      setIsAuthenticated(true);
-      return { success: true, data: response };
-    } catch (error) {
-      console.error('Registration failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.message || error.message || 'Ошибка регистрации' 
-      };
-    }
-  }, []);
-
-  const login = useCallback(async (credentials) => {
-    try {
-      const response = await authApi.login(credentials);
-      const userFromToken = authApi.getUserFromToken();
-      setUser(userFromToken);
-      setIsAuthenticated(true);
-      return { success: true, data: response };
-    } catch (error) {
-      console.error('Login failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.message || error.message || 'Ошибка входа' 
-      };
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      setIsAuthenticated(false);
-    }
-  }, []);
-
-  const refreshToken = useCallback(async () => {
-    try {
-      const success = await authApi.refreshToken();
-      if (success) {
-        const userFromToken = authApi.getUserFromToken();
-        setUser(userFromToken);
-        setIsAuthenticated(true);
-      } else {
-        logout();
+      const result = await authAPI.login(credentials);
+      if (result.accessToken) {
+        // Декодируем JWT чтобы получить роль
+        try {
+          const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
+          const role = payload.role;
+          if (role) {
+            localStorage.setItem('userRole', role);
+            setUserRole(role);
+            setUser({ authenticated: true, role });
+          } else {
+            setUser({ authenticated: true });
+          }
+        } catch {
+          setUser({ authenticated: true });
+        }
+        return { success: true };
       }
-      return success;
+      return { success: false, error: result.error || 'Login failed' };
     } catch (error) {
-      logout();
-      return false;
+      return { success: false, error: error.message };
     }
-  }, [logout]);
+  };
 
-  const value = {
-    user,
-    loading,
-    isAuthenticated,
-    register,
-    login,
-    logout,
-    refreshToken,
+  const register = async (userData) => {
+    try {
+      const result = await authAPI.register(userData);
+      if (result.accessToken) {
+        // Декодируем JWT чтобы получить роль
+        try {
+          const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
+          const role = payload.role;
+          if (role) {
+            localStorage.setItem('userRole', role);
+            setUserRole(role);
+            setUser({ authenticated: true, role });
+          } else {
+            setUser({ authenticated: true });
+          }
+        } catch {
+          setUser({ authenticated: true });
+        }
+        return { success: true };
+      }
+      return { success: false, error: result.error || 'Registration failed' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const logout = async () => {
+    await authAPI.logout();
+    setUser(null);
+    setUserRole(null);
+  };
+
+  const hasRole = (role) => {
+    return userRole === role;
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      register, 
+      logout,
+      userRole,
+      hasRole,
+      isAuthenticated: !!user
+    }}>
       {children}
     </AuthContext.Provider>
   );

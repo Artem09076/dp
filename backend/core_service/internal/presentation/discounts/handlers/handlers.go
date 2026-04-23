@@ -22,6 +22,7 @@ type DiscountsService interface {
 	GetDiscount(ctx context.Context, discountID uuid.UUID) (*sqlc.Discount, error)
 	UpdateDiscount(ctx context.Context, discountID uuid.UUID, updateDiscountObj dto.PatchDiscountRequest) error
 	DeleteDiscount(ctx context.Context, discountID uuid.UUID) error
+	GetDiscountsByServiceID(ctx context.Context, serviceID uuid.UUID) ([]sqlc.Discount, error)
 }
 type DiscountsHandler struct {
 	service DiscountsService
@@ -131,6 +132,47 @@ func (h *DiscountsHandler) GetDiscount() http.HandlerFunc {
 			MaxUses:   int(discount.MaxUses),
 			UsedCount: int(discount.UsedCount),
 			CreatedAt: discount.CreatedAt,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			log.Info(err.Error())
+			h.WriteError(w, r, err, op)
+			return
+		}
+	}
+}
+
+func (h *DiscountsHandler) GetDiscountsByServiceID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const op = "discounts.handlers.GetDiscount"
+		log := h.log.With(slog.String("op", op))
+		serviceIDStr := chi.URLParam(r, "id")
+		serviceID, err := uuid.Parse(serviceIDStr)
+		if err != nil {
+			h.WriteError(w, r, apierrors.ErrInvalidInput, op)
+			return
+		}
+		discounts, err := h.service.GetDiscountsByServiceID(r.Context(), serviceID)
+		if err != nil {
+			h.WriteError(w, r, err, op)
+			return
+		}
+
+		resp := make([]dto.DiscountResponse, len(discounts))
+
+		for i, discount := range discounts {
+			resp[i] = dto.DiscountResponse{
+				ID:        discount.ID.String(),
+				ServiceID: discount.ServiceID.String(),
+				Type:      string(discount.Type),
+				Value:     int(discount.Value),
+				ValidFrom: discount.ValidFrom,
+				ValidTo:   discount.ValidTo,
+				MaxUses:   int(discount.MaxUses),
+				UsedCount: int(discount.UsedCount),
+				CreatedAt: discount.CreatedAt,
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

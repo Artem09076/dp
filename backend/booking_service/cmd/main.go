@@ -65,6 +65,7 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
+	router.Use(bookingmiddleware.CorsMiddleware)
 
 	router.Group(func(r chi.Router) {
 		r.Use(bookingmiddleware.NewJWTMiddleware(log, validator))

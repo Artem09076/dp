@@ -90,7 +90,7 @@ func (a *App) Start() error {
 		return fmt.Errorf("failed to register gateway: %w", err)
 	}
 
-	handler := authMiddleware(mux)
+	handler := corsMiddleware(authMiddleware(mux))
 
 	a.httpServer = &http.Server{
 		Addr:         fmt.Sprintf(":%d", a.gatewayPort),

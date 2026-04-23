@@ -90,6 +90,7 @@ func (s *ReviewService) CreateReview(ctx context.Context, userID uuid.UUID, req 
 func (s *ReviewService) GetReviewByBookingID(ctx context.Context, userID uuid.UUID, bookingID uuid.UUID) (*sqlc.Review, error) {
 	booking, err := s.repo.GetBookingByID(ctx, bookingID)
 	if err != nil {
+		s.log.Info(err.Error())
 		return nil, apierrors.ErrNotFound
 	}
 

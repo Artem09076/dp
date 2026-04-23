@@ -2,7 +2,6 @@ package admin
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 
 	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
@@ -16,7 +15,7 @@ type AdminRepository interface {
 	GetUnverifiedPerformers(ctx context.Context, arg sqlc.GetUnverifiedPerformersParams) ([]sqlc.GetUnverifiedPerformersRow, error)
 	CountUnverifiedPerformers(ctx context.Context) (int64, error)
 	GetUsersWithFilters(ctx context.Context, arg sqlc.GetUsersWithFiltersParams) ([]sqlc.GetUsersWithFiltersRow, error)
-	CountUsersWithFilters(ctx context.Context, arg sqlc.CountUsersWithFiltersParams) (int64, error)
+	CountUsersWithFilters(ctx context.Context) (int64, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (sqlc.GetUserByIDRow, error)
 	UpdateUserRole(ctx context.Context, arg sqlc.UpdateUserRoleParams) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
@@ -24,9 +23,9 @@ type AdminRepository interface {
 	GetAllServices(ctx context.Context, arg sqlc.GetAllServicesParams) ([]sqlc.GetAllServicesRow, error)
 	CountAllServices(ctx context.Context, performerID uuid.UUID) (int64, error)
 	GetAllBookings(ctx context.Context, arg sqlc.GetAllBookingsParams) ([]sqlc.GetAllBookingsRow, error)
-	CountAllBookings(ctx context.Context, arg sqlc.CountAllBookingsParams) (int64, error)
+	CountAllBookings(ctx context.Context) (int64, error)
 	GetAllReviews(ctx context.Context, arg sqlc.GetAllReviewsParams) ([]sqlc.GetAllReviewsRow, error)
-	CountAllReviews(ctx context.Context, arg sqlc.CountAllReviewsParams) (int64, error)
+	CountAllReviews(ctx context.Context) (int64, error)
 	DeleteReview(ctx context.Context, id uuid.UUID) error
 	GetService(ctx context.Context, id uuid.UUID) (sqlc.GetServiceRow, error)
 	GetBookingByID(ctx context.Context, id uuid.UUID) (sqlc.GetBookingByIDRow, error)
@@ -102,27 +101,15 @@ func (s *AdminService) GetUsers(ctx context.Context, role, verificationStatus, s
 		verificationEnum.Scan(verificationStatus)
 	}
 
-	var searchNull sql.NullString
-	if search != "" {
-		searchNull = sql.NullString{String: search, Valid: true}
-	}
-
 	users, err := s.repo.GetUsersWithFilters(ctx, sqlc.GetUsersWithFiltersParams{
-		Role:               roleEnum,
-		VerificationStatus: verificationEnum,
-		Search:             searchNull,
-		Limit:              int32(pageSize),
-		Offset:             int32(offset),
+		Limit:  int32(pageSize),
+		Offset: int32(offset),
 	})
 	if err != nil {
 		return nil, 0, err
 	}
 
-	total, err := s.repo.CountUsersWithFilters(ctx, sqlc.CountUsersWithFiltersParams{
-		Role:               roleEnum,
-		VerificationStatus: verificationEnum,
-		Search:             searchNull,
-	})
+	total, err := s.repo.CountUsersWithFilters(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -231,9 +218,8 @@ func (s *AdminService) GetServices(ctx context.Context, performerID uuid.UUID, p
 	offset := (page - 1) * pageSize
 
 	services, err := s.repo.GetAllServices(ctx, sqlc.GetAllServicesParams{
-		Column1: performerID,
-		Limit:   int32(pageSize),
-		Offset:  int32(offset),
+		Limit:  int32(pageSize),
+		Offset: int32(offset),
 	})
 	if err != nil {
 		return nil, 0, err
@@ -268,41 +254,20 @@ func (s *AdminService) GetServices(ctx context.Context, performerID uuid.UUID, p
 func (s *AdminService) GetBookings(ctx context.Context, status, clientID, performerID string, page, pageSize int) ([]dto.BookingResponse, int64, error) {
 	offset := (page - 1) * pageSize
 
-	var clientUUID uuid.NullUUID
-	if clientID != "" {
-		if id, err := uuid.Parse(clientID); err == nil {
-			clientUUID = uuid.NullUUID{UUID: id, Valid: true}
-		}
-	}
-
-	var performerUUID uuid.NullUUID
-	if performerID != "" {
-		if id, err := uuid.Parse(performerID); err == nil {
-			performerUUID = uuid.NullUUID{UUID: id, Valid: true}
-		}
-	}
-
 	var statusEnum sqlc.NullBookingStatus
 	if status != "" {
 		statusEnum.Scan(status)
 	}
 
 	bookings, err := s.repo.GetAllBookings(ctx, sqlc.GetAllBookingsParams{
-		Status:      statusEnum,
-		ClientID:    clientUUID,
-		PerformerID: performerUUID,
-		Limit:       int32(pageSize),
-		Offset:      int32(offset),
+		Limit:  int32(pageSize),
+		Offset: int32(offset),
 	})
 	if err != nil {
 		return nil, 0, err
 	}
 
-	total, err := s.repo.CountAllBookings(ctx, sqlc.CountAllBookingsParams{
-		Status:      statusEnum,
-		ClientID:    clientUUID,
-		PerformerID: performerUUID,
-	})
+	total, err := s.repo.CountAllBookings(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -330,25 +295,15 @@ func (s *AdminService) GetBookings(ctx context.Context, status, clientID, perfor
 func (s *AdminService) GetReviews(ctx context.Context, serviceID uuid.UUID, rating int, page, pageSize int) ([]dto.ReviewResponse, int64, error) {
 	offset := (page - 1) * pageSize
 
-	var ratingNull sql.NullInt32
-	if rating > 0 && rating <= 5 {
-		ratingNull = sql.NullInt32{Int32: int32(rating), Valid: true}
-	}
-
 	reviews, err := s.repo.GetAllReviews(ctx, sqlc.GetAllReviewsParams{
-		Column1: serviceID,
-		Rating:  ratingNull,
-		Limit:   int32(pageSize),
-		Offset:  int32(offset),
+		Limit:  int32(pageSize),
+		Offset: int32(offset),
 	})
 	if err != nil {
 		return nil, 0, err
 	}
 
-	total, err := s.repo.CountAllReviews(ctx, sqlc.CountAllReviewsParams{
-		Column1: serviceID,
-		Rating:  ratingNull,
-	})
+	total, err := s.repo.CountAllReviews(ctx)
 	if err != nil {
 		return nil, 0, err
 	}

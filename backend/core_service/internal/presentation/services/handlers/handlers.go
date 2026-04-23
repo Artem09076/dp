@@ -113,7 +113,6 @@ func (h *ServiceHandler) SearchServices() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "service.handlers.SearchServices"
 		w.Header().Set("Content-Type", "application/json")
-
 		query := r.URL.Query().Get("query")
 		page := r.URL.Query().Get("page")
 		if page == "" {

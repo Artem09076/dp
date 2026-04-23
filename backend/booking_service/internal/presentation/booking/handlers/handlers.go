@@ -74,8 +74,8 @@ func (h *BookingHandler) convertToBookingResponse(booking *sqlc.GetBookingByIDRo
 	return resp
 }
 
-func (h *BookingHandler) convertToBookingListResponse(booking *sqlc.Booking) dto.BookingResponse {
-	resp := dto.BookingResponse{
+func (h *BookingHandler) convertToBookingListResponse(booking *sqlc.Booking) dto.BookinListResponse {
+	resp := dto.BookinListResponse{
 		ID:          booking.ID.String(),
 		ClientID:    booking.ClientID.String(),
 		ServiceID:   booking.ServiceID.String(),
@@ -133,6 +133,7 @@ func (h *BookingHandler) CreateBooking() http.HandlerFunc {
 
 		var req dto.CreateBookingRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			h.log.Info(err.Error())
 			h.writeError(w, r, apierrors.ErrInvalidInput, op)
 			return
 		}
@@ -285,7 +286,7 @@ func (h *BookingHandler) GetBookings() http.HandlerFunc {
 			return
 		}
 
-		responses := make([]dto.BookingResponse, len(bookings))
+		responses := make([]dto.BookinListResponse, len(bookings))
 		for i, booking := range bookings {
 			responses[i] = h.convertToBookingListResponse(&booking)
 		}
