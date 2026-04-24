@@ -22,14 +22,12 @@ const BookingDetail = ({ bookingId, onClose }) => {
       const data = await bookingAPI.getBooking(bookingId);
       setBooking(data);
       
-      // Check if review exists
       try {
         const reviewData = await coreAPI.getReviewByBooking(bookingId);
         if (reviewData && reviewData.id) {
           setReview(reviewData);
         }
       } catch (err) {
-        // No review yet
       }
     } catch (err) {
       setError('Failed to load booking details');

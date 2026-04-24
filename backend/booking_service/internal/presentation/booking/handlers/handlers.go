@@ -28,6 +28,7 @@ type BookingService interface {
 	ServiceExists(ctx context.Context, serviceID uuid.UUID) (bool, error)
 	CheckBookingOwnerships(ctx context.Context, userID uuid.UUID, clientID uuid.UUID, performerID uuid.UUID) bool
 	DeleteBooking(ctx context.Context, userID uuid.UUID, bookingID uuid.UUID) error
+	CompleteBooking(ctx context.Context, userID uuid.UUID, bookingID *sqlc.GetBookingByIDRow) error
 }
 
 type BookingHandler struct {
@@ -44,17 +45,21 @@ func NewBookingHandler(bookingService BookingService, log *slog.Logger) *Booking
 
 func (h *BookingHandler) convertToBookingResponse(booking *sqlc.GetBookingByIDRow) dto.BookingResponse {
 	resp := dto.BookingResponse{
-		ID:           booking.ID.String(),
-		ClientID:     booking.ClientID.String(),
-		ServiceID:    booking.ServiceID.String(),
-		ServiceTitle: booking.ServiceTitle,
-		PerformerID:  booking.PerformerID.String(),
-		BasePrice:    booking.BasePrice,
-		FinalPrice:   booking.FinalPrice,
-		BookingTime:  booking.BookingTime,
-		Status:       string(booking.Status),
-		CreatedAt:    booking.CreatedAt,
-		UpdatedAt:    booking.UpdatedAt,
+		ID:             booking.ID.String(),
+		ClientID:       booking.ClientID.String(),
+		ServiceID:      booking.ServiceID.String(),
+		ServiceTitle:   booking.ServiceTitle,
+		PerformerID:    booking.PerformerID.String(),
+		ClientName:     booking.ClientName,
+		ClientEmail:    booking.ClientEmail,
+		PerformerName:  booking.PerformerName,
+		PerformerEmail: booking.PerformerEmail,
+		BasePrice:      booking.BasePrice,
+		FinalPrice:     booking.FinalPrice,
+		BookingTime:    booking.BookingTime,
+		Status:         string(booking.Status),
+		CreatedAt:      booking.CreatedAt,
+		UpdatedAt:      booking.UpdatedAt,
 	}
 
 	if booking.DiscountID.Valid {
@@ -204,6 +209,41 @@ func (h *BookingHandler) SubmitBooking() http.HandlerFunc {
 		}
 
 		err = h.bookingService.SubmitBooking(r.Context(), userID, booking)
+		if err != nil {
+			h.writeError(w, r, err, op)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (h *BookingHandler) CompleteBooking() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		op := "booking.handlers.CompleteBooking"
+		w.Header().Set("Content-Type", "application/json")
+
+		userID, ok := h.getUserID(w, r)
+		if !ok {
+			return
+		}
+
+		bookingID, ok := h.getBookingID(w, r)
+		if !ok {
+			return
+		}
+
+		booking, err := h.bookingService.GetBooking(r.Context(), userID, bookingID)
+		if err != nil {
+			h.writeError(w, r, err, op)
+			return
+		}
+
+		if booking.Status == "completed" {
+			h.writeError(w, r, apierrors.ErrAlreadyDone, op)
+			return
+		}
+
+		err = h.bookingService.CompleteBooking(r.Context(), userID, booking)
 		if err != nil {
 			h.writeError(w, r, err, op)
 			return

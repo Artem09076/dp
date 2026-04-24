@@ -72,6 +72,7 @@ func main() {
 		r.Post("/api/v1/bookings", bookingHandlers.CreateBooking())
 		r.Patch("/api/v1/bookings/cancel/{id}", bookingHandlers.CancelBooking())
 		r.Patch("/api/v1/bookings/submit/{id}", bookingHandlers.SubmitBooking())
+		r.Patch("/api/v1/bookings/completed/{id}", bookingHandlers.CompleteBooking())
 		r.Patch("/api/v1/bookings/{id}", bookingHandlers.PatchBooking())
 		r.Get("/api/v1/bookings/{id}", bookingHandlers.GetBooking())
 		r.Get("/api/v1/bookings", bookingHandlers.GetBookings())

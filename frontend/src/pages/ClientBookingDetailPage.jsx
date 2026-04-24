@@ -284,7 +284,6 @@ const ClientBookingDetailPage = () => {
           )}
         </div>
 
-        {/* Отображение существующего отзыва с кнопками редактирования и удаления */}
         {review && !showEditForm && (
           <div className="review-section">
             <div className="review-header-with-buttons">
@@ -313,7 +312,6 @@ const ClientBookingDetailPage = () => {
           </div>
         )}
 
-        {/* Форма создания отзыва */}
         {showReviewForm && (
           <div className="review-form-section">
             <h2>Оставить отзыв</h2>
@@ -354,7 +352,6 @@ const ClientBookingDetailPage = () => {
           </div>
         )}
 
-        {/* Форма редактирования отзыва */}
         {showEditForm && (
           <div className="review-form-section">
             <h2>Редактировать отзыв</h2>
@@ -395,7 +392,6 @@ const ClientBookingDetailPage = () => {
           </div>
         )}
 
-        {/* Кнопка для написания отзыва */}
         {canReview && !showReviewForm && !showEditForm && (
           <div className="review-prompt">
             <button onClick={() => setShowReviewForm(true)} className="btn-write-review">
@@ -404,7 +400,6 @@ const ClientBookingDetailPage = () => {
           </div>
         )}
 
-        {/* Индикатор загрузки отзыва */}
         {loadingReview && (
           <div className="loading-review">
             <div className="spinner-small"></div>

@@ -24,6 +24,17 @@ func (q *Queries) CancelBooking(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const completedBooking = `-- name: CompletedBooking :exec
+UPDATE bookings
+SET status = 'completed', updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) CompletedBooking(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, completedBooking, id)
+	return err
+}
+
 const createBooking = `-- name: CreateBooking :one
 INSERT INTO bookings (
     client_id,
@@ -131,28 +142,43 @@ func (q *Queries) GetBookingByClientID(ctx context.Context, clientID uuid.UUID) 
 }
 
 const getBookingByID = `-- name: GetBookingByID :one
-SELECT b.id, b.client_id, b.service_id, b.base_price, b.discount_id, b.final_price, b.booking_time, b.status, b.created_at, b.updated_at, s.title AS service_title, s.performer_id, d.type AS discount_type, d.value AS discount_value
+SELECT 
+    b.id, b.client_id, b.service_id, b.base_price, b.discount_id, b.final_price, b.booking_time, b.status, b.created_at, b.updated_at,
+    s.title AS service_title,
+    c.name AS client_name,
+    c.email AS client_email,
+    p.name AS performer_name,
+    p.email AS performer_email,
+    s.performer_id,
+    d.type AS discount_type,
+    d.value AS discount_value
 FROM bookings b
 JOIN services s ON b.service_id = s.id
+JOIN users c ON b.client_id = c.id
+JOIN users p ON s.performer_id = p.id
 LEFT JOIN discounts d ON b.discount_id = d.id
 WHERE b.id = $1
 `
 
 type GetBookingByIDRow struct {
-	ID            uuid.UUID        `json:"id"`
-	ClientID      uuid.UUID        `json:"client_id"`
-	ServiceID     uuid.UUID        `json:"service_id"`
-	BasePrice     int32            `json:"base_price"`
-	DiscountID    uuid.NullUUID    `json:"discount_id"`
-	FinalPrice    int32            `json:"final_price"`
-	BookingTime   time.Time        `json:"booking_time"`
-	Status        BookingStatus    `json:"status"`
-	CreatedAt     time.Time        `json:"created_at"`
-	UpdatedAt     time.Time        `json:"updated_at"`
-	ServiceTitle  string           `json:"service_title"`
-	PerformerID   uuid.UUID        `json:"performer_id"`
-	DiscountType  NullDiscoutnType `json:"discount_type"`
-	DiscountValue sql.NullInt32    `json:"discount_value"`
+	ID             uuid.UUID        `json:"id"`
+	ClientID       uuid.UUID        `json:"client_id"`
+	ServiceID      uuid.UUID        `json:"service_id"`
+	BasePrice      int32            `json:"base_price"`
+	DiscountID     uuid.NullUUID    `json:"discount_id"`
+	FinalPrice     int32            `json:"final_price"`
+	BookingTime    time.Time        `json:"booking_time"`
+	Status         BookingStatus    `json:"status"`
+	CreatedAt      time.Time        `json:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at"`
+	ServiceTitle   string           `json:"service_title"`
+	ClientName     string           `json:"client_name"`
+	ClientEmail    string           `json:"client_email"`
+	PerformerName  string           `json:"performer_name"`
+	PerformerEmail string           `json:"performer_email"`
+	PerformerID    uuid.UUID        `json:"performer_id"`
+	DiscountType   NullDiscoutnType `json:"discount_type"`
+	DiscountValue  sql.NullInt32    `json:"discount_value"`
 }
 
 func (q *Queries) GetBookingByID(ctx context.Context, id uuid.UUID) (GetBookingByIDRow, error) {
@@ -170,6 +196,10 @@ func (q *Queries) GetBookingByID(ctx context.Context, id uuid.UUID) (GetBookingB
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ServiceTitle,
+		&i.ClientName,
+		&i.ClientEmail,
+		&i.PerformerName,
+		&i.PerformerEmail,
 		&i.PerformerID,
 		&i.DiscountType,
 		&i.DiscountValue,

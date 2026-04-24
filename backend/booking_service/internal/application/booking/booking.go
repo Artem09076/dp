@@ -27,6 +27,7 @@ type BookingRepository interface {
 	GetServiceById(ctx context.Context, id uuid.UUID) (sqlc.Service, error)
 	GetDiscountById(ctx context.Context, id uuid.UUID) (sqlc.Discount, error)
 	GetBookingByID(ctx context.Context, id uuid.UUID) (sqlc.GetBookingByIDRow, error)
+	CompletedBooking(ctx context.Context, id uuid.UUID) error
 	GetUserById(ctx context.Context, id uuid.UUID) (sqlc.User, error)
 	SubmitBooking(ctx context.Context, id uuid.UUID) error
 	UpdateBookingTime1(ctx context.Context, arg sqlc.UpdateBookingTime1Params) error
@@ -330,6 +331,24 @@ func (s *BookingService) SubmitBooking(ctx context.Context, userID uuid.UUID, bo
 	go s.invalidateCaches(context.Background(), booking.ID, booking.ClientID, booking.PerformerID)
 
 	go s.publishEvent(BookingSubmit, booking.ID, booking.ClientID, booking.ServiceTitle, booking.BookingTime)
+
+	return nil
+}
+
+func (s *BookingService) CompleteBooking(ctx context.Context, userID uuid.UUID, booking *sqlc.GetBookingByIDRow) error {
+	if booking.Status == "completed" {
+		return errors.ErrAlreadyDone
+	}
+	if !s.CheckBookingOwnerships(ctx, userID, booking.ClientID, booking.PerformerID) {
+		return errors.ErrForbidden
+	}
+
+	if err := s.repo.CompletedBooking(ctx, booking.ID); err != nil {
+		s.log.Error("failed to submit booking", "error", err)
+		return err
+	}
+
+	go s.invalidateCaches(context.Background(), booking.ID, booking.ClientID, booking.PerformerID)
 
 	return nil
 }

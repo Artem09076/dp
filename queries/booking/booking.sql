@@ -6,6 +6,12 @@ UPDATE bookings
 SET status = 'cancelled', updated_at = NOW()
 WHERE id = $1;
 
+-- name: CompletedBooking :exec
+UPDATE bookings
+SET status = 'completed', updated_at = NOW()
+WHERE id = $1;
+
+
 -- name: CreateBooking :one
 INSERT INTO bookings (
     client_id,
@@ -26,9 +32,20 @@ SELECT * FROM services WHERE id = $1;
 SELECT * FROM discounts WHERE id = $1;
 
 -- name: GetBookingByID :one
-SELECT b.*, s.title AS service_title, s.performer_id, d.type AS discount_type, d.value AS discount_value
+SELECT 
+    b.*,
+    s.title AS service_title,
+    c.name AS client_name,
+    c.email AS client_email,
+    p.name AS performer_name,
+    p.email AS performer_email,
+    s.performer_id,
+    d.type AS discount_type,
+    d.value AS discount_value
 FROM bookings b
 JOIN services s ON b.service_id = s.id
+JOIN users c ON b.client_id = c.id
+JOIN users p ON s.performer_id = p.id
 LEFT JOIN discounts d ON b.discount_id = d.id
 WHERE b.id = $1;
 

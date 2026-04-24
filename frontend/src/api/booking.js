@@ -48,11 +48,9 @@ class BookingAPI {
         }
       }
 
-      // Получаем текст ответа
       const responseText = await response.text();
       console.log('Response text:', responseText);
       
-      // Парсим JSON если возможно
       let errorData;
       try {
         errorData = responseText ? JSON.parse(responseText) : {};
@@ -60,9 +58,7 @@ class BookingAPI {
         errorData = { message: responseText };
       }
       
-      // Если ответ не успешный (status не 2xx)
       if (!response.ok) {
-        // Извлекаем сообщение об ошибке из разных возможных форматов
         let errorMessage = '';
         
         if (errorData.error) {
@@ -120,6 +116,11 @@ class BookingAPI {
 
   async submitBooking(id) {
     return this.request(`/api/v1/bookings/submit/${id}`, {
+      method: 'PATCH',
+    });
+  }
+  async completedBooking(id) {
+    return this.request(`/api/v1/bookings/completed/${id}`, {
       method: 'PATCH',
     });
   }

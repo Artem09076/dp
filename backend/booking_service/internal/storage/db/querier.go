@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	CancelBooking(ctx context.Context, id uuid.UUID) error
+	CompletedBooking(ctx context.Context, id uuid.UUID) error
 	CreateBooking(ctx context.Context, arg CreateBookingParams) (uuid.UUID, error)
 	DeleteBooking(ctx context.Context, id uuid.UUID) error
 	GetBooking(ctx context.Context, id uuid.UUID) (Booking, error)

@@ -11,7 +11,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Вспомогательная функция для проверки валидности токена (не хук!)
 const isTokenValid = () => {
   const token = localStorage.getItem('accessToken');
   if (!token) return false;
@@ -30,12 +29,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
 
-  // Функция для проверки аутентификации
   const isAuthenticated = () => {
     return !!localStorage.getItem('accessToken');
   };
 
-  // Эффект для инициализации и периодической проверки токена
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -57,7 +54,6 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('auth:logout', handleLogout);
   }, []);
 
-  // Эффект для периодической проверки токена (вынесен внутрь компонента)
   useEffect(() => {
     const checkToken = async () => {
       if (isAuthenticated() && !isTokenValid()) {
@@ -70,13 +66,11 @@ export const AuthProvider = ({ children }) => {
     
     const interval = setInterval(checkToken, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []); // Пустой массив зависимостей - эффект запускается один раз при монтировании
-
+  }, []); 
   const login = async (credentials) => {
     try {
       const result = await authAPI.login(credentials);
       if (result.accessToken) {
-        // Декодируем JWT чтобы получить роль
         try {
           const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
           const role = payload.role;
@@ -102,7 +96,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await authAPI.register(userData);
       if (result.accessToken) {
-        // Декодируем JWT чтобы получить роль
         try {
           const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
           const role = payload.role;

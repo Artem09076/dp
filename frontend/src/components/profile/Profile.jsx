@@ -57,13 +57,12 @@ const Profile = () => {
   return (
     <div className="profile-container">
       <div className="profile-card">
-        <h2>My Profile</h2>
+        <h2>Мой профиль</h2>
         
-        {/* Quick Actions Section */}
         <div className="quick-actions-section">
-          <h3>Quick Actions</h3>
+          <h3>Действия</h3>
           <div className="quick-actions">
-            {userRole === 'performer' && (
+            {userRole === 'performer' && profile.verification_status === 'verified' && (
               <>
                 <button onClick={() => navigate('/my-services')} className="action-btn">
                   <span className="action-icon">🛠️</span>
@@ -75,10 +74,15 @@ const Profile = () => {
                 </button>
               </>
             )}
+            {userRole === 'performer' && profile.verification_status != 'verified' && (
+              <>
+              <span>Вы не можете пока создавать или смотреть ваши бронирования, подождите пока ваш аккаунт подтвердят</span>
+              </>
+            )}
             {userRole === 'client' && (
               <button onClick={() => navigate('/bookings')} className="action-btn">
                 <span className="action-icon">📅</span>
-                My Bookings
+                Мои бронирования
               </button>
             )}
             {userRole === 'admin' && (
@@ -87,6 +91,7 @@ const Profile = () => {
                 Admin Panel
               </button>
             )}
+
           </div>
         </div>
 
@@ -95,7 +100,7 @@ const Profile = () => {
         {editing ? (
           <form onSubmit={handleUpdate}>
             <div className="form-group">
-              <label>Name</label>
+              <label>Имя</label>
               <input
                 type="text"
                 value={formData.name}
@@ -104,7 +109,7 @@ const Profile = () => {
               />
             </div>
             <div className="form-group">
-              <label>Email</label>
+              <label>Почта</label>
               <input
                 type="email"
                 value={formData.email}
@@ -122,36 +127,32 @@ const Profile = () => {
         ) : (
           <>
             <div className="profile-info">
-              <p><strong>Name:</strong> {profile.name}</p>
-              <p><strong>Email:</strong> {profile.email}</p>
+              <p><strong>Имя:</strong> {profile.name}</p>
+              <p><strong>Почта:</strong> {profile.email}</p>
               
-              {/* Для клиента скрываем роль и статус */}
-              {userRole !== 'client' && (
-                <p><strong>Role:</strong> {profile.role}</p>
-              )}
+
               
-              {/* Для исполнителя показываем статус верификации */}
               {userRole === 'performer' && (
                 <p>
-                  <strong>Verification Status:</strong> 
+                  <strong>Статус:</strong> 
                   <span className={`status-badge ${profile.verification_status}`}>
                     {profile.verificationStatus === 'verified' ? '✅ Verified' : 
                      profile.verificationStatus === 'pending' ? '⏳ Pending' : 
-                     profile.verificationStatus === 'rejected' ? '❌ Rejected' : profile.verificationStatus}
+                     profile.verificationStatus === 'rejected' ? '❌ Rejected' : profile.verification_status}
                   </span>
                 </p>
               )}
               
               {profile.inn && userRole === 'performer' && (
-                <p><strong>INN:</strong> {profile.inn}</p>
+                <p><strong>Инн:</strong> {profile.inn}</p>
               )}
               {profile.businessType && userRole === 'performer' && (
-                <p><strong>Business Type:</strong> {profile.businessType}</p>
+                <p><strong>Тип бизнесса:</strong> {profile.businessType}</p>
               )}
             </div>
             <div className="profile-actions">
-              <button onClick={() => setEditing(true)} className="btn-edit">Edit Profile</button>
-              <button onClick={handleDelete} className="btn-delete">Delete Account</button>
+              <button onClick={() => setEditing(true)} className="btn-edit">Изменить профиль</button>
+              <button onClick={handleDelete} className="btn-delete">Удалить аккаунт</button>
             </div>
           </>
         )}

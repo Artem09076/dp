@@ -13,7 +13,6 @@ const MyServicesPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingService, setEditingService] = useState(null);
   
-  // Форма для создания/редактирования
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -134,7 +133,6 @@ const MyServicesPage = () => {
 
       {error && <div className="error-message">{error}</div>}
 
-      {/* Форма создания сервиса */}
       {showCreateForm && (
         <div className="modal" onClick={cancelForm}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -192,7 +190,6 @@ const MyServicesPage = () => {
         </div>
       )}
 
-      {/* Форма редактирования сервиса */}
       {editingService && (
         <div className="modal" onClick={cancelForm}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -248,7 +245,6 @@ const MyServicesPage = () => {
         </div>
       )}
 
-      {/* Список услуг */}
       {services.length === 0 ? (
         <div className="no-services">
           <p>You haven't created any services yet.</p>

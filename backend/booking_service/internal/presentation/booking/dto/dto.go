@@ -13,20 +13,24 @@ type CreateBookingRequest struct {
 }
 
 type BookingResponse struct {
-	ID            string    `json:"id"`
-	ClientID      string    `json:"client_id"`
-	ServiceID     string    `json:"service_id"`
-	ServiceTitle  string    `json:"service_title"`
-	PerformerID   string    `json:"performer_id"`
-	BasePrice     int32     `json:"base_price"`
-	DiscountID    *string   `json:"discount_id,omitempty"`
-	DiscountType  *string   `json:"discount_type,omitempty"`
-	DiscountValue *int32    `json:"discount_value,omitempty"`
-	FinalPrice    int32     `json:"final_price"`
-	BookingTime   time.Time `json:"booking_time"`
-	Status        string    `json:"status"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID             string    `json:"id"`
+	ClientID       string    `json:"client_id"`
+	ServiceID      string    `json:"service_id"`
+	ServiceTitle   string    `json:"service_title"`
+	PerformerID    string    `json:"performer_id"`
+	ClientName     string    `json:"client_name"`
+	ClientEmail    string    `json:"client_email"`
+	PerformerName  string    `json:"performer_name"`
+	PerformerEmail string    `json:"performer_email"`
+	BasePrice      int32     `json:"base_price"`
+	DiscountID     *string   `json:"discount_id,omitempty"`
+	DiscountType   *string   `json:"discount_type,omitempty"`
+	DiscountValue  *int32    `json:"discount_value,omitempty"`
+	FinalPrice     int32     `json:"final_price"`
+	BookingTime    time.Time `json:"booking_time"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type BookinListResponse struct {

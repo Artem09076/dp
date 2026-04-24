@@ -60,6 +60,11 @@ func (m *MockRepository) SubmitBooking(ctx context.Context, id uuid.UUID) error 
 	return args.Error(0)
 }
 
+func (m *MockRepository) CompletedBooking(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 func (m *MockRepository) UpdateBookingTime1(ctx context.Context, arg sqlc.UpdateBookingTime1Params) error {
 	args := m.Called(ctx, arg)
 	return args.Error(0)

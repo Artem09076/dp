@@ -14,10 +14,30 @@ import Navbar from './components/common/Navbar';
 import PrivateRoute from './components/common/PrivateRoute';
 import ClientBookingDetailPage from './pages/ClientBookingDetailPage';
 import PerformerBookingDetailPage from './pages/PerformerBookingDetailPage';
+import NotFoundPage from './pages/NotFoundPage'; // Импортируем страницу 404
 import './App.css';
 
+// Компонент для публичных маршрутов (редирект на дашборд если уже авторизован)
+const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+  
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
+
 const AppContent = () => {
-  const { user, loading, userRole } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -31,9 +51,20 @@ const AppContent = () => {
     <>
       {user && <Navbar />}
       <Routes>
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-        <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
-        <Route path="/" element={user ? <Dashboard /> : <Navigate to="/login" />} />
+        {/* Публичные маршруты - доступны только неавторизованным */}
+        <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } />
+        <Route path="/register" element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        } />
+        
+        {/* Защищенные маршруты - требуют авторизации */}
+        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/bookings" element={<PrivateRoute><BookingsPage /></PrivateRoute>} />
         <Route path="/my-services" element={<PrivateRoute><MyServicesPage /></PrivateRoute>} />
         <Route path="/services/client/:id" element={<PrivateRoute><ClientServiceDetailPage /></PrivateRoute>} />
@@ -42,6 +73,9 @@ const AppContent = () => {
         <Route path="/bookings/performer/:id" element={<PrivateRoute requiredRole="performer"><PerformerBookingDetailPage /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute requiredRole="admin"><AdminPanel /></PrivateRoute>} />
+        
+        {/* Маршрут 404 - должен быть последним */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   );
@@ -51,7 +85,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppContent/>
+        <AppContent />
       </AuthProvider>
     </Router>
   );

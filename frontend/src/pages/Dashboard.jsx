@@ -6,12 +6,12 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Welcome to Service Booking Platform</h1>
-        <p>Find and book services from professional performers</p>
+        <h1>Добро пожаловать на платформу по бронированию услуг</h1>
+        <p>Найдите и забранируйте услугу от провериных поставщиков</p>
       </div>
 
       <div className="search-section">
-        <h2>Search Services</h2>
+        <h2>Поиск сервисов</h2>
         <ServiceList />
       </div>
     </div>

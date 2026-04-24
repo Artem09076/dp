@@ -54,7 +54,6 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
   const formatDateForBackend = (dateTimeLocal) => {
     if (!dateTimeLocal) return null;
     
-    // Добавляем секунды и UTC
     return dateTimeLocal + ':00Z';
   };
 
@@ -93,7 +92,6 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
     } catch (err) {
       console.error('Booking creation error:', err);
       
-      // Обрабатываем разные типы ошибок
       let errorMessage = '';
       
       if (typeof err === 'string') {
@@ -112,7 +110,6 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
         errorMessage = 'Failed to create booking';
       }
       
-      // Русские сообщения для понятных ошибок
       if (errorMessage.toLowerCase().includes('time') || errorMessage.toLowerCase().includes('busy')) {
         errorMessage = 'This time slot is already booked. Please select another time.';
       } else if (errorMessage.toLowerCase().includes('invalid')) {
@@ -140,19 +137,19 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onCancel}>×</button>
         
-        <h3>Book Service: {service?.title}</h3>
+        <h3>Забронировать: {service?.title}</h3>
         
         <div className="service-info">
-          <p className="service-duration">⏱️ Duration: {service?.durationMinutes} minutes</p>
-          <p className="service-price">Original Price: ${originalPrice}</p>
+          <p className="service-duration">⏱️ Продолжительность: {service?.durationMinutes} минут</p>
+          <p className="service-price">Начальная цена: ${originalPrice}</p>
           {hasDiscount && (
-            <p className="service-final-price">Final Price: <strong>${finalPrice.toFixed(2)}</strong></p>
+            <p className="service-final-price">Финальная цена: <strong>${finalPrice.toFixed(2)}</strong></p>
           )}
         </div>
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Select Date and Time:</label>
+            <label>Выберите дату и время бронирования:</label>
             <input
               type="datetime-local"
               value={bookingTime}
@@ -160,22 +157,22 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
               required
               min={getMinDateTime()}
             />
-            <small className="form-hint">Please select a time at least 1 hour from now</small>
+            <small className="form-hint">Пожалуйста, выберите время минимум через 1 час.</small>
           </div>
 
           {loadingDiscounts ? (
             <div className="form-group">
-              <label>Loading discounts...</label>
+              <label>Загрузка скидок...</label>
             </div>
           ) : discounts.length > 0 ? (
             <div className="form-group">
-              <label>Apply Discount (Optional):</label>
+              <label>Применить скидку:</label>
               <select 
                 value={selectedDiscount} 
                 onChange={(e) => setSelectedDiscount(e.target.value)}
                 className="discount-select"
               >
-                <option value="">No discount</option>
+                <option value="">Нет скидок</option>
                 {discounts.map(discount => {
                   let discountText = '';
                   let savings = 0;
@@ -190,20 +187,20 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
                   
                   return (
                     <option key={discount.id} value={discount.id}>
-                      {discountText} - Save ${savings.toFixed(2)} (Valid until {new Date(discount.validTo).toLocaleDateString()})
+                      {discountText} - Сохранить ${savings.toFixed(2)} (Скидка деуствительна до {new Date(discount.validTo).toLocaleDateString()})
                     </option>
                   );
                 })}
               </select>
               {selectedDiscount && (
                 <p className="savings-info">
-                  🎉 You save ${(originalPrice - finalPrice).toFixed(2)}!
+                  Разница со скидкой ${(originalPrice - finalPrice).toFixed(2)}!
                 </p>
               )}
             </div>
           ) : (
             <div className="form-group">
-              <p className="no-discounts">No active discounts available</p>
+              <p className="no-discounts">Нет доступных скидок</p>
             </div>
           )}
 
@@ -214,7 +211,7 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
           )}
 
           <button type="submit" disabled={loading} className="btn-confirm-booking">
-            {loading ? 'Creating Booking...' : `Confirm Booking - $${finalPrice.toFixed(2)}`}
+            {loading ? 'Создание бронирования...' : `Подтвердить бронирования - ${finalPrice.toFixed(2)}`}
           </button>
         </form>
       </div>

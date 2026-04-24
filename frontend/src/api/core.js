@@ -29,16 +29,12 @@ class CoreAPI {
         },
       });
 
-      // Если получили 401 и это не первая попытка
       if (response.status === 401 && retryCount === 0) {
-        // Пытаемся обновить токен через auth сервис
         const refreshed = await authAPI.refreshToken();
         
         if (refreshed) {
-          // Повторяем запрос с новым токеном
           return this.request(endpoint, options, retryCount + 1);
         } else {
-          // Не удалось обновить - разлогиниваем
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           window.dispatchEvent(new Event('auth:logout'));
@@ -61,7 +57,6 @@ class CoreAPI {
     return makeRequest();
   }
 
-  // Profile endpoints
   async getProfile() {
     return this.request('/api/v1/profile');
   }
@@ -79,7 +74,6 @@ class CoreAPI {
     });
   }
 
-  // Service endpoints
   async searchServices(query, page = 1, limit = 10) {
     const params = new URLSearchParams({ query, page, limit });
     return this.request(`/api/v1/services/search?${params}`);
@@ -113,7 +107,6 @@ class CoreAPI {
     });
   }
 
-  // Discount endpoints
   async getDiscount(id) {
     return this.request(`/api/v1/discounts/${id}`);
   }
@@ -141,8 +134,19 @@ class CoreAPI {
       method: 'DELETE',
     });
   }
+  async deleteService(serviceId) {
+  return this.request(`/api/v1/services/${serviceId}`, {
+    method: 'DELETE',
+  });
+}
 
-  // Review endpoints
+  async deleteBooking(bookingId) {
+    return this.request(`/api/v1/bookings/${bookingId}`, {
+      method: 'DELETE',
+    });
+  }
+
+
   async createReview(data) {
     return this.request('/api/v1/reviews', {
       method: 'POST',
@@ -151,12 +155,10 @@ class CoreAPI {
   }
 
  async getReviewByBooking(bookingId) {
-  // Используем request но подавляем 404
   try {
     const result = await this.request(`/api/v1/booking/${bookingId}/reviews`);
     return result;
   } catch (error) {
-    // Если это ошибка 404 - значит отзыва нет, возвращаем null
     if (error.message === 'Not Found' || error.message?.includes('404') || error.status === 404) {
       console.log('No review found for booking:', bookingId);
       return null;
@@ -183,7 +185,6 @@ class CoreAPI {
     });
   }
 
-  // Admin endpoints
   async getUnverifiedPerformers(page = 1, pageSize = 20) {
   const params = new URLSearchParams({ 
     page: page.toString(), 

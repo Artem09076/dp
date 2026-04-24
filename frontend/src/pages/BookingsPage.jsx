@@ -12,9 +12,9 @@ const BookingsPage = () => {
     <div className="bookings-page">
       <div className="page-header">
         <button onClick={() => navigate('/')} className="btn-back-page">
-          ← Back to Home
+          ← Назад
         </button>
-        <h1>Bookings Management</h1>
+        <h1>Мои бронирования</h1>
       </div>
       
       <BookingList />

@@ -75,7 +75,6 @@ const ServiceList = () => {
     searchInputRef.current?.focus();
   };
 
-  // Обработчик клика по карточке услуги
   const handleServiceClick = (serviceId) => {
     if (userRole === 'performer') {
       navigate(`/services/performer/${serviceId}`);
@@ -95,7 +94,7 @@ const ServiceList = () => {
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search services by title, description..."
+            placeholder="Введите название услуги"
             value={searchQuery}
             onChange={handleSearchChange}
             className="search-input"
@@ -123,9 +122,9 @@ const ServiceList = () => {
       {!loading && services.length === 0 && (
         <div className="no-services">
           {searchQuery ? (
-            <>No services found for "<strong>{searchQuery}</strong>"</>
+            <>Не найдено сервисов по запросу "<strong>{searchQuery}</strong>"</>
           ) : (
-            <>No services available. Check back later!</>
+            <></>
           )}
         </div>
       )}
@@ -139,15 +138,12 @@ const ServiceList = () => {
             style={{ cursor: 'pointer' }}
           >
             <h3>{service.title}</h3>
-            <p className="price">${service.price}</p>
-            <p className="duration">⏱️ {service.durationMinutes} minutes</p>
+            <p className="price">{service.price}₽</p>
+            <p className="duration">⏱️ {service.duration_minutes} минут</p>
             {service.description && <p className="description">{service.description}</p>}
-            <div className="rating">
-              {'⭐'.repeat(Math.round(service.averageRating || 0))}
-              {service.averageRating ? ` (${service.averageRating})` : ' No reviews yet'}
-            </div>
+          
             {!user && (
-              <div className="login-hint">Login to book</div>
+              <div className="login-hint">Войдите в аккаунт для бронирования услуг</div>
             )}
           </div>
         ))}

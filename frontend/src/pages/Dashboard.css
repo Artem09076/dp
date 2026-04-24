@@ -41,7 +41,6 @@
   font-weight: normal;
 }
 
-/* Стили для поисковой строки */
 .search-section .service-list {
   width: 100%;
   background: white;
@@ -123,7 +122,6 @@
   width: 100%;
 }
 
-/* Стили для карточек услуг */
 .search-section .service-card {
   background: white;
   border-radius: 16px;

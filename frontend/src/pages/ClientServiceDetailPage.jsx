@@ -128,7 +128,7 @@ const ClientServiceDetailPage = () => {
     <div className="service-detail-page">
       <div className="service-detail-container">
         <button onClick={() => navigate('/')} className="btn-back">
-          ← Back to Search
+          ← Назад к поиску
         </button>
         
         <div className="service-detail-header">
@@ -140,21 +140,21 @@ const ClientServiceDetailPage = () => {
                 {averageRating > 0 ? ` ${averageRating.toFixed(1)}` : ' No ratings yet'}
               </span>
             </div>
-            <div className="price-large">${service.price}</div>
-            <div className="duration-large">⏱️ {service.durationMinutes} minutes</div>
+            <div className="price-large">{service.price}₽</div>
+            <div className="duration-large">⏱️ {service.duration_minutes} минут</div>
           </div>
         </div>
 
         {service.description && (
           <div className="service-description">
-            <h2>Description</h2>
+            <h2>Описание</h2>
             <p>{service.description}</p>
           </div>
         )}
 
         {discounts.length > 0 && (
           <div className="service-discounts">
-            <h2>Available Discounts</h2>
+            <h2>Доступные скидки</h2>
             <div className="discounts-list">
               {discounts.map(discount => (
                 <div key={discount.id} className="discount-card">
@@ -174,13 +174,13 @@ const ClientServiceDetailPage = () => {
         {/* Только для клиентов - кнопка бронирования */}
         <div className="booking-action">
           <button onClick={() => setShowBookingModal(true)} className="btn-book-now">
-            Book This Service
+            Забронировать
           </button>
         </div>
 
         {reviews.length > 0 && (
           <div className="service-reviews">
-            <h2>Customer Reviews ({reviews.length})</h2>
+            <h2>Отзывы ({reviews.length})</h2>
             <div className="reviews-list">
               {reviews.map(review => (
                 <div key={review.id} className="review-card">
@@ -194,7 +194,7 @@ const ClientServiceDetailPage = () => {
                     <p className="review-comment">"{review.comment}"</p>
                   )}
                   <div className="review-author">
-                    — Customer
+                    — Пользователь
                   </div>
                 </div>
               ))}

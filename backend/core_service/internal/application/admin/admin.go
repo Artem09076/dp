@@ -21,7 +21,7 @@ type AdminRepository interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	UpdateVerificationStatus(ctx context.Context, arg sqlc.UpdateVerificationStatusParams) error
 	GetAllServices(ctx context.Context, arg sqlc.GetAllServicesParams) ([]sqlc.GetAllServicesRow, error)
-	CountAllServices(ctx context.Context, performerID uuid.UUID) (int64, error)
+	CountAllServices(ctx context.Context) (int64, error)
 	GetAllBookings(ctx context.Context, arg sqlc.GetAllBookingsParams) ([]sqlc.GetAllBookingsRow, error)
 	CountAllBookings(ctx context.Context) (int64, error)
 	GetAllReviews(ctx context.Context, arg sqlc.GetAllReviewsParams) ([]sqlc.GetAllReviewsRow, error)
@@ -225,7 +225,7 @@ func (s *AdminService) GetServices(ctx context.Context, performerID uuid.UUID, p
 		return nil, 0, err
 	}
 
-	total, err := s.repo.CountAllServices(ctx, performerID)
+	total, err := s.repo.CountAllServices(ctx)
 	if err != nil {
 		return nil, 0, err
 	}

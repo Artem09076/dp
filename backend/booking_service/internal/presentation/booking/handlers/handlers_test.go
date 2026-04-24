@@ -41,6 +41,11 @@ func (m *MockBookingService) SubmitBooking(ctx context.Context, userID uuid.UUID
 	return args.Error(0)
 }
 
+func (m *MockBookingService) CompleteBooking(ctx context.Context, userID uuid.UUID, booking *sqlc.GetBookingByIDRow) error {
+	args := m.Called(ctx, userID, booking)
+	return args.Error(0)
+}
+
 func (m *MockBookingService) UpdateBooking(ctx context.Context, userID uuid.UUID, bookingID uuid.UUID, req dto.PatchBookingRequest) error {
 	args := m.Called(ctx, userID, bookingID, req)
 	return args.Error(0)

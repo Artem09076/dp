@@ -51,7 +51,6 @@ const BookingList = () => {
       
       const bookingsArray = Array.isArray(data) ? data : [];
       
-      // Форматируем бронирования и загружаем названия сервисов
       const formattedBookings = await Promise.all(bookingsArray.map(async (booking) => {
         const serviceTitle = await loadServiceTitle(booking.service_id);
         return {
@@ -141,7 +140,16 @@ const BookingList = () => {
     }
   };
 
-  // Функция для форматирования даты на русском языке
+  const handleCompleted = async (id) => {
+    try {
+      await bookingAPI.completedBooking(id);
+      await loadBookings();
+      alert('Booking marked as completed');
+    } catch (err) {
+      setError('Failed to submit booking');
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Дата не указана';
     const date = new Date(dateString);
@@ -156,7 +164,6 @@ const BookingList = () => {
     });
   };
 
-  // Альтернативный формат только даты
   const formatDateOnly = (dateString) => {
     if (!dateString) return 'Дата не указана';
     const date = new Date(dateString);
@@ -259,7 +266,7 @@ const BookingList = () => {
                     </button>
                   )}
                   {booking.status === 'confirmed' && (
-                    <button onClick={() => handleSubmit(booking.id)} className="btn-submit">
+                    <button onClick={() => handleCompleted(booking.id)} className="btn-submit">
                       Отметить как выполненное
                     </button>
                   )}

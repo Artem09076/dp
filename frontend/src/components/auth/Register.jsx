@@ -59,27 +59,27 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Пароли не совпадают');
       return false;
     }
     
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('В пароле должно быть как минимум 6 символов');
       return false;
     }
 
     if (passwordStrength < 2) {
-      setError('Please use a stronger password');
+      setError('Пожалуйста придумайте более сильный пароль');
       return false;
     }
 
     if (formData.userRole === 'performer') {
       if (!formData.inn || formData.inn.length !== 12) {
-        setError('INN must be exactly 12 digits for performers');
+        setError('ИНН должен содержать ровно 12 цифр');
         return false;
       }
       if (!formData.businessType) {
-        setError('Business type is required for performers');
+        setError('Пожалуйста укажите тип вашего бизнесса');
         return false;
       }
     }
@@ -87,39 +87,41 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setLoading(true);
-    setError('');
 
-    const registerData = {
-      email: formData.email,
-      name: formData.name,
-      password: formData.password,
-      userRole: formData.userRole,
-      inn: formData.userRole === 'performer' ? formData.inn : '',
-      businessType: formData.userRole === 'performer' ? formData.businessType : '',
-    };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) return;
+  
+  setLoading(true);
+  setError('');
 
-    const result = await register(registerData);
-
-    if (result.success) {
-      if (onSuccess) onSuccess();
-    } else {
-      setError(result.error || 'Registration failed. Please try again.');
-    }
-    setLoading(false);
+  const registerData = {
+    email: formData.email,
+    name: formData.name,
+    password: formData.password,
+    userRole: formData.userRole,
+    inn: formData.userRole === 'performer' ? formData.inn : '',
+    businessType: formData.userRole === 'performer' ? formData.businessType : '',
   };
 
+  const result = await register(registerData);
+
+  if (result.success) {
+    navigate('/'); 
+    if (onSuccess) onSuccess();
+  } else {
+    setError(result.error || 'Регистрация провалена. Попробуйте снова.');
+  }
+  setLoading(false);
+};
+
   const getPasswordStrengthText = () => {
-    if (passwordStrength === 0) return 'Very Weak';
-    if (passwordStrength === 1) return 'Weak';
-    if (passwordStrength === 2) return 'Medium';
-    if (passwordStrength === 3) return 'Strong';
-    return 'Very Strong';
+    if (passwordStrength === 0) return 'Очень слабый';
+    if (passwordStrength === 1) return 'Слабый';
+    if (passwordStrength === 2) return 'Средний';
+    if (passwordStrength === 3) return 'Сильный';
+    return 'Очень сильный';
   };
 
   const getPasswordStrengthColor = () => {
@@ -134,13 +136,12 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h2>Create Account</h2>
-          <p>Join our service booking platform</p>
+          <h2>Создать аккаунт</h2>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">Full Name</label>
+            <label htmlFor="name">ФИО</label>
             <input
               type="text"
               id="name"
@@ -148,12 +149,12 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="John Doe"
+              placeholder="Иван Иванович Иванов"
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">Почта</label>
             <input
               type="email"
               id="email"
@@ -161,12 +162,12 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
               value={formData.email}
               onChange={handleChange}
               required
-              placeholder="your@email.com"
+              placeholder="me@email.com"
             />
           </div>
 
           <div className="form-group">
-            <label>Account Type</label>
+            <label>Тип аккаунта</label>
             <div className="role-buttons">
               <button
                 type="button"
@@ -177,7 +178,7 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
-                Customer
+                Пользователь
               </button>
               <button
                 type="button"
@@ -188,14 +189,14 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                 </svg>
-                Performer
+                Поставщик
               </button>
             </div>
           </div>
 
           {formData.userRole === 'performer' && (
             <div className="form-group slide-down">
-              <label htmlFor="inn">INN (12 digits)</label>
+              <label htmlFor="inn">ИНН (12 цифр)</label>
               <input
                 type="text"
                 id="inn"
@@ -208,10 +209,10 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 pattern="\d{12}"
               />
               {formData.inn && formData.inn.length === 12 && (
-                <span className="input-valid">✓ Valid INN</span>
+                <span className="input-valid">✓ Инн валидный</span>
               )}
 
-              <label htmlFor="businessType" style={{ marginTop: '1rem' }}>Business Type</label>
+              <label htmlFor="businessType" style={{ marginTop: '1rem' }}>Тип вашего бизнесса</label>
               <select
                 id="businessType"
                 name="businessType"
@@ -219,16 +220,15 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 onChange={handleChange}
                 required
               >
-                <option value="">Select business type</option>
-                <option value="llc">LLC (Limited Liability Company)</option>
-                <option value="ip">IP (Individual Entrepreneur)</option>
-                <option value="jsc">JSC (Joint Stock Company)</option>
+                <option value="">Выберите тип вашего бизнеса</option>
+                <option value="self_employed">Самозанятый</option>
+                <option value="ip">ИП (Индивидуальный предприниматель)</option>
               </select>
             </div>
           )}
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Пароль</label>
             <div className="password-input-wrapper">
               <input
                 type={showPassword ? "text" : "password"}
@@ -237,7 +237,7 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                placeholder="Create a password"
+                placeholder="Придумайте пароль"
               />
               <button
                 type="button"
@@ -259,14 +259,14 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                   />
                 </div>
                 <span style={{ color: getPasswordStrengthColor() }}>
-                  Password strength: {getPasswordStrengthText()}
+                  Пароль: {getPasswordStrengthText()}
                 </span>
               </div>
             )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
+            <label htmlFor="confirmPassword">Подтвердите пароль</label>
             <div className="password-input-wrapper">
               <input
                 type={showConfirmPassword ? "text" : "password"}
@@ -275,7 +275,7 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                placeholder="Confirm your password"
+                placeholder="Подтвердите ваш пароль"
               />
               <button
                 type="button"
@@ -302,19 +302,19 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
             {loading ? (
               <>
                 <span className="spinner"></span>
-                Creating account...
+                Создание аккаунта...
               </>
             ) : (
-              'Create Account'
+              'Создать аккаунт'
             )}
           </button>
         </form>
 
         <div className="auth-footer">
           <p>
-            Already have an account?{' '}
+            Уже есть аккаунт?{' '}
             <button onClick={() => navigate('/login')} className="link-button">
-              Sign in
+              Войти
             </button>
           </p>
         </div>

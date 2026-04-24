@@ -1,29 +1,25 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const PrivateRoute = ({ children, requiredRole }) => {
   const { isAuthenticated, userRole, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading-container">Loading...</div>;
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+        <p>Загрузка...</p>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="access-denied">
-        <h2>Access Denied</h2>
-        <p>Please login to access this page.</p>
-      </div>
-    );
+    return <Navigate to="/login" replace />;
   }
 
   if (requiredRole && userRole !== requiredRole && userRole !== 'admin') {
-    return (
-      <div className="access-denied">
-        <h2>Access Denied</h2>
-        <p>You don't have permission to access this page.</p>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return children;

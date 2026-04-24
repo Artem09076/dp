@@ -28,37 +28,36 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    // Валидация
-    if (!isEmailLogin && formData.inn.length !== 12) {
-      setError('INN must be exactly 12 digits');
-      setLoading(false);
-      return;
-    }
-
-    const credentials = isEmailLogin
-      ? { email: formData.email, password: formData.password }
-      : { inn: formData.inn, password: formData.password };
-
-    const result = await login(credentials);
-
-    if (result.success) {
-      if (onSuccess) onSuccess();
-    } else {
-      setError(result.error || 'Login failed. Please check your credentials.');
-    }
+  if (!isEmailLogin && formData.inn.length !== 12) {
+    setError('INN must be exactly 12 digits');
     setLoading(false);
-  };
+    return;
+  }
+
+  const credentials = isEmailLogin
+    ? { email: formData.email, password: formData.password }
+    : { inn: formData.inn, password: formData.password };
+
+  const result = await login(credentials);
+
+  if (result.success) {
+    navigate('/');  // Редирект на главную
+  } else {
+    setError(result.error || 'Login failed. Please check your credentials.');
+  }
+  setLoading(false);
+};
 
   return (
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h2>Welcome Back</h2>
-          <p>Sign in to your account</p>
+          <h2>С возвращением</h2>
+          <p>Войдите в ваш аккаунт</p>
         </div>
         
         <div className="auth-tabs">
@@ -75,7 +74,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
               <polyline points="22,6 12,13 2,6"/>
             </svg>
-            Email
+            Почта
           </button>
           <button
             type="button"
@@ -92,7 +91,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
               <line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            INN
+            Инн
           </button>
         </div>
 
@@ -104,7 +103,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                   <polyline points="22,6 12,13 2,6"/>
                 </svg>
-                Email Address
+                Email
               </label>
               <input
                 type="email"
@@ -126,7 +125,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                   <line x1="8" y1="2" x2="8" y2="6"/>
                   <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                INN (12 digits)
+                Инн (12 цифр)
               </label>
               <input
                 type="text"
@@ -141,7 +140,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                 autoComplete="off"
               />
               {formData.inn && formData.inn.length === 12 && (
-                <span className="input-valid">✓ Valid INN format</span>
+                <span className="input-valid">✓ Допустимый формат ИНН</span>
               )}
             </div>
           )}
@@ -152,7 +151,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              Password
+              Пароль
             </label>
             <div className="password-input-wrapper">
               <input
@@ -201,19 +200,19 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
             {loading ? (
               <>
                 <span className="spinner"></span>
-                Signing in...
+                Входим в аккаунт
               </>
             ) : (
-              'Sign In'
+              'Войти'
             )}
           </button>
         </form>
 
         <div className="auth-footer">
           <p>
-            Don't have an account?{' '}
+            Нет аккаунта?{' '}
             <button onClick={() => navigate('/register')} className="link-button">
-              Create account
+              Создать аккаунт
             </button>
           </p>
         </div>

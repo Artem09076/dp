@@ -27,8 +27,6 @@ const ServiceDetail = ({ serviceId, onClose }) => {
       const reviewsData = await coreAPI.getServiceReviews(serviceId);
       setReviews(Array.isArray(reviewsData) ? reviewsData : []);
       
-      // Load discounts (if any)
-      // You would need an endpoint for this
       setDiscounts([]);
     } catch (err) {
       setError('Failed to load service details');
@@ -76,14 +74,14 @@ const ServiceDetail = ({ serviceId, onClose }) => {
         <div className="service-header">
           <h2>{service.title}</h2>
           <div className="service-meta">
-            <span className="price">${service.price}</span>
-            <span className="duration">⏱️ {service.durationMinutes} minutes</span>
+            <span className="price">₽{service.price}</span>
+            <span className="duration">⏱️ {service.duration_minutes} minutes</span>
           </div>
         </div>
         
         {service.description && (
           <div className="service-description">
-            <h3>Description</h3>
+            <h3>Описание</h3>
             <p>{service.description}</p>
           </div>
         )}

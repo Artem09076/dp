@@ -59,7 +59,6 @@ const PerformerServiceDetailPage = () => {
         duration_minutes: serviceData.duration_minutes?.toString() || serviceData.durationMinutes?.toString() || '0'
       });
       
-      // Load reviews
       try {
         const reviewsData = await coreAPI.getServiceReviews(id);
         const reviewsArray = Array.isArray(reviewsData) ? reviewsData : [];
@@ -73,7 +72,6 @@ const PerformerServiceDetailPage = () => {
         console.error('Failed to load reviews:', err);
       }
       
-      // Load discounts
       try {
         const discountsData = await coreAPI.getServiceDiscounts(id);
         setDiscounts(Array.isArray(discountsData) ? discountsData : []);
@@ -120,7 +118,6 @@ const PerformerServiceDetailPage = () => {
     }
   };
 
-  // Добавьте эту функцию перед handleCreateDiscount
 const formatDateForBackend = (dateTimeLocal) => {
   if (!dateTimeLocal) return null;
   
@@ -152,7 +149,6 @@ const handleCreateDiscount = async (e) => {
     return;
   }
   
-  // Форматируем даты
   let formattedValidFrom, formattedValidTo;
   try {
     formattedValidFrom = formatDateForBackend(discountForm.valid_from);

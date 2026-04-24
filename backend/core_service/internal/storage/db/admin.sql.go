@@ -42,11 +42,10 @@ func (q *Queries) CountAllReviews(ctx context.Context) (int64, error) {
 
 const countAllServices = `-- name: CountAllServices :one
 SELECT COUNT(*) FROM services
-WHERE ($1::uuid IS NULL OR performer_id = $1)
 `
 
-func (q *Queries) CountAllServices(ctx context.Context, dollar_1 uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countAllServices, dollar_1)
+func (q *Queries) CountAllServices(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAllServices)
 	var count int64
 	err := row.Scan(&count)
 	return count, err

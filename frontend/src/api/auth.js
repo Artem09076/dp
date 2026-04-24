@@ -31,12 +31,10 @@ class AuthAPI {
     return 'web_' + Math.random().toString(36).substring(2, 15);
   }
 
-  // Подписка на обновление токена
   subscribeToRefresh(callback) {
     this.refreshSubscribers.push(callback);
   }
 
-  // Уведомление подписчиков о новом токене
   onRefreshSuccess(token) {
     this.refreshSubscribers.forEach(callback => callback(token));
     this.refreshSubscribers = [];
@@ -82,7 +80,6 @@ class AuthAPI {
         },
       });
 
-      // Если получили 401 и это не первая попытка refresh
       if (response.status === 401 && retryCount === 0) {
         const errorText = await response.text();
         let errorData;
@@ -92,20 +89,16 @@ class AuthAPI {
           errorData = { error: errorText };
         }
         
-        // Проверяем, истек ли токен
         if (errorData.error && (
           errorData.error.includes('expired') || 
           errorData.error.includes('invalid token') ||
           errorData.error.includes('token has invalid claims')
         )) {
-          // Пытаемся обновить токен
           const refreshed = await this.refreshToken();
           
           if (refreshed) {
-            // Повторяем запрос с новым токеном
             return this.request(endpoint, options, retryCount + 1);
           } else {
-            // Не удалось обновить - разлогиниваем
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             window.dispatchEvent(new Event('auth:logout'));
@@ -164,7 +157,6 @@ class AuthAPI {
     const token = localStorage.getItem('accessToken');
     if (!token) return false;
     
-    // Можно также проверить, не истек ли токен
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const exp = payload.exp * 1000;

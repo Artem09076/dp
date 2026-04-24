@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, data } from 'react-router-dom';
 import bookingAPI from '../api/booking';
 import coreAPI from '../api/core';
 import './BookingDetailPage.css';
@@ -11,8 +11,6 @@ const PerformerBookingDetailPage = () => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [serviceTitle, setServiceTitle] = useState('');
-  const [clientInfo, setClientInfo] = useState(null);
 
   useEffect(() => {
     loadBookingDetail();
@@ -43,12 +41,7 @@ const PerformerBookingDetailPage = () => {
       setLoading(true);
       const data = await bookingAPI.getBooking(id);
       console.log('Booking details:', data);
-      
-      const title = await loadServiceTitle(data.service_id);
-      setServiceTitle(title);
-      
-      const client = await loadClientInfo(data.client_id);
-      setClientInfo(client);
+
       
       setBooking(data);
     } catch (err) {
@@ -84,7 +77,7 @@ const PerformerBookingDetailPage = () => {
   const handleCompleteBooking = async () => {
     if (window.confirm('Отметить это бронирование как выполненное?')) {
       try {
-        await bookingAPI.submitBooking(id);
+        await bookingAPI.completedBooking(id);
         await loadBookingDetail();
         alert('Бронирование отмечено как выполненное');
       } catch (err) {
@@ -198,7 +191,7 @@ const PerformerBookingDetailPage = () => {
           <h2>Информация о бронировании</h2>
           <div className="info-row">
             <span className="label">Услуга:</span>
-            <span className="value">{serviceTitle}</span>
+            <span className="value">{data.service_title}</span>
           </div>
           <div className="info-row">
             <span className="label">Дата и время:</span>
@@ -211,16 +204,16 @@ const PerformerBookingDetailPage = () => {
           )}
         </div>
 
-        {clientInfo && (
+        {booking.client_email && (
           <div className="client-info-section">
             <h2>Информация о клиенте</h2>
             <div className="info-row">
               <span className="label">Имя:</span>
-              <span className="value">{clientInfo.name}</span>
+              <span className="value">{booking.client_name}</span>
             </div>
             <div className="info-row">
               <span className="label">Email:</span>
-              <span className="value">{clientInfo.email}</span>
+              <span className="value">{booking.client_email}</span>
             </div>
           </div>
         )}

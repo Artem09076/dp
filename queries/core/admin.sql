@@ -47,8 +47,7 @@ ORDER BY s.created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountAllServices :one
-SELECT COUNT(*) FROM services
-WHERE ($1::uuid IS NULL OR performer_id = $1);
+SELECT COUNT(*) FROM services;
 
 -- name: GetAllBookings :many
 SELECT b.id, b.client_id, b.service_id, b.base_price, b.final_price, b.booking_time, b.status, b.created_at, b.updated_at,

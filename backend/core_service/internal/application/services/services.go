@@ -44,7 +44,12 @@ func (s *Service) CheckServiceOwnership(ctx context.Context, userID uuid.UUID, s
 		s.log.Error("Failed to get service", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
 		return false, err
 	}
-	return service.PerformerID == userID, nil
+	user, err := s.repo.GetProfile(ctx, userID)
+	if err != nil {
+		s.log.Error("Failed to get service", slog.String("serviceID", serviceID.String()), slog.String("Error", err.Error()))
+		return false, err
+	}
+	return service.PerformerID == userID || user.Role == "admin", nil
 }
 
 func (s *Service) CreateService(ctx context.Context, createServiceObject dto.CreateServiceRequest) (*sqlc.Service, error) {

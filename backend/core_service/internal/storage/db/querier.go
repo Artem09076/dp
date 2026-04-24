@@ -13,7 +13,7 @@ import (
 type Querier interface {
 	CountAllBookings(ctx context.Context) (int64, error)
 	CountAllReviews(ctx context.Context) (int64, error)
-	CountAllServices(ctx context.Context, dollar_1 uuid.UUID) (int64, error)
+	CountAllServices(ctx context.Context) (int64, error)
 	CountUnverifiedPerformers(ctx context.Context) (int64, error)
 	CountUsersWithFilters(ctx context.Context) (int64, error)
 	CreateDiscount(ctx context.Context, arg CreateDiscountParams) (Discount, error)

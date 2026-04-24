@@ -15,22 +15,22 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand" onClick={() => navigate('/')}>
-        🏠 ServiceBooking
+        ServiceBooking
       </div>
       
       <div className="navbar-menu">
-        <button 
+        {userRole != 'admin' &&
+        (<button 
           className={isActive('/bookings') ? 'active' : ''}
           onClick={() => navigate('/bookings')}
         >
-          My Bookings
-        </button>
-        
+          Мои бронирования
+        </button>)}
         <button 
           className={isActive('/profile') ? 'active' : ''}
           onClick={() => navigate('/profile')}
         >
-          Profile
+          Профиль
         </button>
         
         {userRole === 'admin' && (
@@ -38,12 +38,12 @@ const Navbar = () => {
             className={isActive('/admin') ? 'active' : ''}
             onClick={() => navigate('/admin')}
           >
-            Admin Panel
+            Панель админа
           </button>
         )}
         
         <button onClick={logout} className="logout-btn">
-          Logout
+          Выйти
         </button>
       </div>
     </nav>
