@@ -59,17 +59,6 @@ const PerformerServiceDetailPage = () => {
       }
 
       
-      const currentUserId = user?.id || localStorage.getItem('userId');
-      const performerId = serviceData.performer_id;
-      
-      console.log('Current user ID:', currentUserId);
-      console.log('Service performer ID:', performerId);
-      
-      if (currentUserId && performerId && currentUserId !== performerId && userRole !== 'admin') {
-        setError('У вас нет доступа к этой услуге');
-        setLoading(false);
-        return;
-      }
       
       setService(serviceData);
       setFormData({

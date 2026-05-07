@@ -190,6 +190,7 @@ func (s *Service) DeleteService(ctx context.Context, serviceID uuid.UUID) error 
 	metrics.RecordServiceDeleted()
 
 	go s.invalidateServiceCaches(context.Background(), serviceID.String(), service.PerformerID.String())
+	go s.invalidateBookingServiceCaches(context.Background(), serviceID.String(), service.PerformerID.String())
 
 	return nil
 }
@@ -236,4 +237,9 @@ func (s *Service) invalidateServiceCaches(ctx context.Context, serviceID, perfor
 	s.redis.InvalidateSearchServices(ctx)
 	s.redis.InvalidateServiceDiscounts(ctx, serviceID)
 	s.redis.InvalidateServiceReviews(ctx, serviceID)
+}
+
+func (s *Service) invalidateBookingServiceCaches(ctx context.Context, serviceID, performerID string) {
+	s.redis.InvalidateBookingsByService(ctx, serviceID)
+	s.redis.InvalidateUserBookingsCaches(ctx, serviceID, performerID)
 }

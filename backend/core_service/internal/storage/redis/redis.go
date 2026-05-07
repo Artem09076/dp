@@ -106,6 +106,131 @@ func (r *RedisClient) InvalidateService(ctx context.Context, serviceID string) e
 	return r.client.Del(ctx, key).Err()
 }
 
+func (r *RedisClient) InvalidateBookingsByService(ctx context.Context, serviceID string) {
+	pattern := "booking:*"
+	iter := r.client.Scan(ctx, 0, pattern, 0).Iterator()
+
+	deletedCount := 0
+	for iter.Next(ctx) {
+		key := iter.Val()
+
+		data, err := r.client.Get(ctx, key).Bytes()
+		if err != nil {
+			continue
+		}
+
+		var booking map[string]interface{}
+		if err := json.Unmarshal(data, &booking); err != nil {
+			continue
+		}
+
+		var bookingServiceID string
+		if serviceIDVal, ok := booking["service_id"]; ok {
+			switch v := serviceIDVal.(type) {
+			case string:
+				bookingServiceID = v
+			case map[string]interface{}:
+				if uuid, ok := v["UUID"]; ok {
+					bookingServiceID, _ = uuid.(string)
+				}
+			}
+		}
+
+		if bookingServiceID == serviceID {
+			if err := r.client.Del(ctx, key).Err(); err != nil {
+				r.log.Warn("failed to delete booking cache", "key", key, "error", err)
+			} else {
+				deletedCount++
+				r.log.Debug("deleted booking cache", "key", key)
+			}
+		}
+	}
+
+	if err := iter.Err(); err != nil {
+		r.log.Warn("error iterating bookings", "error", err)
+	}
+}
+
+func (r *RedisClient) InvalidateUserBookingsCaches(ctx context.Context, serviceID, performerID string) {
+	performerPattern := fmt.Sprintf("bookings:user:%s:role:*", performerID)
+	performerIter := r.client.Scan(ctx, 0, performerPattern, 0).Iterator()
+
+	performerDeletedCount := 0
+	for performerIter.Next(ctx) {
+		if err := r.client.Del(ctx, performerIter.Val()).Err(); err != nil {
+			r.log.Warn("failed to delete performer bookings cache", "key", performerIter.Val(), "error", err)
+		} else {
+			performerDeletedCount++
+		}
+	}
+
+	affectedClients := r.findAffectedClientsByService(ctx, serviceID)
+
+	clientDeletedCount := 0
+	for clientID := range affectedClients {
+		clientPattern := fmt.Sprintf("bookings:user:%s:role:*", clientID)
+		clientIter := r.client.Scan(ctx, 0, clientPattern, 0).Iterator()
+		for clientIter.Next(ctx) {
+			if err := r.client.Del(ctx, clientIter.Val()).Err(); err != nil {
+				r.log.Warn("failed to delete client bookings cache", "key", clientIter.Val(), "error", err)
+			} else {
+				clientDeletedCount++
+			}
+		}
+	}
+}
+
+func (r *RedisClient) findAffectedClientsByService(ctx context.Context, serviceID string) map[string]bool {
+	affectedClients := make(map[string]bool)
+
+	pattern := "booking:*"
+	iter := r.client.Scan(ctx, 0, pattern, 0).Iterator()
+
+	for iter.Next(ctx) {
+		key := iter.Val()
+		data, err := r.client.Get(ctx, key).Bytes()
+		if err != nil {
+			continue
+		}
+
+		var booking map[string]interface{}
+		if err := json.Unmarshal(data, &booking); err != nil {
+			continue
+		}
+
+		var bookingServiceID string
+		if serviceIDVal, ok := booking["service_id"]; ok {
+			switch v := serviceIDVal.(type) {
+			case string:
+				bookingServiceID = v
+			case map[string]interface{}:
+				if uuid, ok := v["UUID"]; ok {
+					bookingServiceID, _ = uuid.(string)
+				}
+			}
+		}
+
+		if bookingServiceID == serviceID {
+			if clientIDVal, ok := booking["client_id"]; ok {
+				var clientID string
+				switch v := clientIDVal.(type) {
+				case string:
+					clientID = v
+				case map[string]interface{}:
+					if uuid, ok := v["UUID"]; ok {
+						clientID, _ = uuid.(string)
+					}
+				}
+				if clientID != "" {
+					affectedClients[clientID] = true
+				}
+			}
+		}
+	}
+
+	return affectedClients
+}
+
 func (r *RedisClient) GetServicesList(ctx context.Context, performerID string) ([]byte, error) {
 	key := fmt.Sprintf("services:performer:%s", performerID)
 	data, err := r.client.Get(ctx, key).Bytes()
