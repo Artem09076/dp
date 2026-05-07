@@ -29,9 +29,7 @@ func (e *APIError) Error() string {
 	return e.Message
 }
 
-// Error mapping with user-friendly messages
 func MapError(err error) *APIError {
-	// ВАЖНО: проверяем специфичные ошибки ПЕРВЫМИ!
 	switch {
 	case errors.Is(err, ErrTimeBusy):
 		return &APIError{

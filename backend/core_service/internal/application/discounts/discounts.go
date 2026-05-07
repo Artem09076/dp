@@ -7,6 +7,7 @@ import (
 	"time"
 
 	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
+	"github.com/Artem09076/dp/backend/core_service/internal/metrics"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/discounts/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
@@ -58,7 +59,7 @@ func (s *DiscountService) CreateDiscount(ctx context.Context, userID uuid.UUID, 
 	if err != nil {
 		return nil, err
 	}
-
+	metrics.RecordDiscountCreated()
 	go s.invalidateDiscountCaches(context.Background(), res.ID.String(), serviceID.String())
 
 	return &res, nil
@@ -164,7 +165,7 @@ func (s *DiscountService) DeleteDiscount(ctx context.Context, discountID uuid.UU
 	if err := s.repo.DeleteDiscount(ctx, discountID); err != nil {
 		return err
 	}
-
+	metrics.RecordDiscountDeleted()
 	go s.invalidateDiscountCaches(context.Background(), discountID.String(), discount.ServiceID.String())
 
 	return nil

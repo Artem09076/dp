@@ -1,0 +1,133 @@
+{
+  "title": "Booking Service Dashboard",
+  "uid": "booking-service",
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP Requests Rate",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "rate(booking_http_requests_total[5m])",
+          "legendFormat": "{{method}} {{endpoint}} - {{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "HTTP Request Duration (P99)",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(booking_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "P99 Latency",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Bookings Created Rate",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 4, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "rate(booking_created_total[1h])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Active Bookings",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 4, "x": 4, "y": 8},
+      "targets": [
+        {
+          "expr": "booking_active_total",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Error Rate",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 4, "x": 8, "y": 8},
+      "targets": [
+        {
+          "expr": "(sum(rate(booking_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(booking_http_requests_total[5m]))) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Bookings by Status",
+      "type": "piechart",
+      "gridPos": {"h": 10, "w": 8, "x": 0, "y": 14},
+      "targets": [
+        {
+          "expr": "booking_by_status",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "pieType": "pie",
+        "displayLabels": ["name", "value"]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Active Goroutines",
+      "type": "graph",
+      "gridPos": {"h": 10, "w": 8, "x": 8, "y": 14},
+      "targets": [
+        {
+          "expr": "booking_goroutines_current",
+          "legendFormat": "Goroutines",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

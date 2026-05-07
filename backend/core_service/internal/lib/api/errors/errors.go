@@ -5,7 +5,6 @@ import (
 	"net/http"
 )
 
-// Domain errors
 var (
 	ErrNotFound              = errors.New("not found")
 	ErrForbidden             = errors.New("forbidden")

@@ -109,7 +109,7 @@ func (h *BookingHandler) HandleCancelled(msg dto.BookingEvent) error {
 		ButtonText:   "Найти похожие услуги",
 		ButtonURL:    "https://your-service.com/services",
 		Year:         time.Now().Year(),
-		SupportEmail: "support@your-service.com",
+		SupportEmail: "grinartem392@yandex.ru",
 	}
 
 	bookingData := templates.BookingData{
@@ -139,9 +139,9 @@ func (h *BookingHandler) HandleCreated(msg dto.BookingEvent) error {
 		Title:        "Новое бронирование",
 		Username:     "Уважаемый партнер",
 		ButtonText:   "Подтвердить бронь",
-		ButtonURL:    fmt.Sprintf("https://your-service.com/bookings/%s/confirm", msg.BookingID),
+		ButtonURL:    fmt.Sprintf("http://localhost:5173/bookings/performer/%s/", msg.BookingID),
 		Year:         time.Now().Year(),
-		SupportEmail: "support@your-service.com",
+		SupportEmail: "grinartem392@yandex.ru",
 	}
 	bookingData := templates.BookingData{
 		EmailData:   emailData,
@@ -171,9 +171,9 @@ func (h *BookingHandler) HandleSubmited(msg dto.BookingEvent) error {
 		Title:        "Бронирование подтверждено",
 		Username:     "Уважаемый клиент",
 		ButtonText:   "Посмотреть детали",
-		ButtonURL:    fmt.Sprintf("https://your-service.com/bookings/%s", msg.BookingID),
+		ButtonURL:    fmt.Sprintf("http://localhost:5173/bookings/client/%s/", msg.BookingID),
 		Year:         time.Now().Year(),
-		SupportEmail: "support@your-service.com",
+		SupportEmail: "grinartem392@yandex.ru",
 	}
 
 	bookingData := templates.BookingData{
@@ -202,10 +202,10 @@ func (h *BookingHandler) HandleUpdate1(msg dto.BookingEvent) error {
 	emailData := templates.EmailData{
 		Title:        "Время услуги изменено",
 		Username:     "Уважаемый клиент",
-		ButtonText:   "Связаться с исполнителем",
-		ButtonURL:    "https://your-service.com/messages",
+		ButtonText:   "Отменить бронирование",
+		ButtonURL:    fmt.Sprintf("http://localhost:5173/bookings/client/%s/", msg.BookingID),
 		Year:         time.Now().Year(),
-		SupportEmail: "support@your-service.com",
+		SupportEmail: "grinartem392@yandex.ru",
 	}
 
 	bookingData := templates.BookingData{
@@ -236,9 +236,9 @@ func (h *BookingHandler) HandleUpdate2(msg dto.BookingEvent) error {
 		Title:        "Предложение нового времени",
 		Username:     "Уважаемый клиент",
 		ButtonText:   "Подтвердить новое время",
-		ButtonURL:    fmt.Sprintf("https://your-service.com/bookings/%s/confirm-time", msg.BookingID),
+		ButtonURL:    fmt.Sprintf("http://localhost:5173/bookings/performer/%s/", msg.BookingID),
 		Year:         time.Now().Year(),
-		SupportEmail: "support@your-service.com",
+		SupportEmail: "grinartem392@yandex.ru",
 	}
 
 	bookingData := templates.BookingData{

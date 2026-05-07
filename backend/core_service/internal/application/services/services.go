@@ -8,6 +8,7 @@ import (
 	"time"
 
 	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
+	"github.com/Artem09076/dp/backend/core_service/internal/metrics"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/services/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
@@ -80,6 +81,7 @@ func (s *Service) CreateService(ctx context.Context, createServiceObject dto.Cre
 	if err != nil {
 		return nil, err
 	}
+	metrics.RecordServiceCreated()
 
 	go s.invalidateServiceCaches(context.Background(), res.ID.String(), createServiceObject.PerformerID.String())
 
@@ -185,6 +187,7 @@ func (s *Service) DeleteService(ctx context.Context, serviceID uuid.UUID) error 
 	if err != nil {
 		return err
 	}
+	metrics.RecordServiceDeleted()
 
 	go s.invalidateServiceCaches(context.Background(), serviceID.String(), service.PerformerID.String())
 

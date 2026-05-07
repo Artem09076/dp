@@ -8,10 +8,6 @@ import (
 )
 
 func GetUserIDFromClaims(ctx context.Context) (uuid.UUID, error) {
-	// claims, ok := ctx.Value("claims").(*jwt.MapClaims)
-	// if !ok || claims == nil {
-	// 	return uuid.Nil, errors.New("invalid authentication claims")
-	// }
 	userID, err := uuid.Parse(ctx.Value("user_id").(string))
 	if err != nil {
 		return uuid.Nil, errors.New("invalid user_id")

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Artem09076/dp/backend/booking_service/internal/lib/api/errors"
+	"github.com/Artem09076/dp/backend/booking_service/internal/metrics"
 	"github.com/Artem09076/dp/backend/booking_service/internal/presentation/booking/dto"
 	sqlc "github.com/Artem09076/dp/backend/booking_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/booking_service/internal/storage/rabbit"
@@ -296,6 +297,8 @@ func (s *BookingService) CreateBooking(ctx context.Context, ClientID uuid.UUID, 
 
 	go s.publishEvent(BookingCreated, id, service.PerformerID, service.Title, booking.BookingTime)
 
+	metrics.RecordBookingCreated()
+
 	return id, nil
 }
 
@@ -312,6 +315,9 @@ func (s *BookingService) CancelBooking(ctx context.Context, userID uuid.UUID, bo
 	go s.invalidateCaches(context.Background(), booking.ID, booking.ClientID, booking.PerformerID)
 
 	go s.publishBoth(BookingCancelled, booking)
+
+	metrics.RecordBookingCancelled()
+
 	return nil
 }
 
@@ -332,6 +338,8 @@ func (s *BookingService) SubmitBooking(ctx context.Context, userID uuid.UUID, bo
 
 	go s.publishEvent(BookingSubmit, booking.ID, booking.ClientID, booking.ServiceTitle, booking.BookingTime)
 
+	metrics.RecordBookingSubmitted()
+
 	return nil
 }
 
@@ -349,6 +357,8 @@ func (s *BookingService) CompleteBooking(ctx context.Context, userID uuid.UUID, 
 	}
 
 	go s.invalidateCaches(context.Background(), booking.ID, booking.ClientID, booking.PerformerID)
+
+	metrics.RecordBookingCompleted()
 
 	return nil
 }

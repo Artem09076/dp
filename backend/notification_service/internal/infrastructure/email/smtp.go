@@ -1,4 +1,3 @@
-// infrastructure/email/email.go (версия с поддержкой UTF-8 в теме)
 package email
 
 import (

@@ -196,7 +196,6 @@
   cursor: pointer;
 }
 
-/* Модальное окно */
 .modal {
   position: fixed;
   top: 0;

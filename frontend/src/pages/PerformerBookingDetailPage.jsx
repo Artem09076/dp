@@ -1,20 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, data } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import bookingAPI from '../api/booking';
 import coreAPI from '../api/core';
+import { useAuth } from '../contexts/AuthContext';
 import './BookingDetailPage.css';
 
 const PerformerBookingDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { userRole } = useAuth();
   
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Редирект для клиента на страницу для клиента
   useEffect(() => {
-    loadBookingDetail();
-  }, [id]);
+    if (userRole === 'client') {
+      navigate(`/bookings/client/${id}`, { replace: true });
+    }
+  }, [userRole, id, navigate]);
+
+  useEffect(() => {
+    if (userRole !== 'client') {
+      loadBookingDetail();
+    }
+  }, [id, userRole]);
 
   const loadServiceTitle = async (serviceId) => {
     try {
@@ -41,9 +52,17 @@ const PerformerBookingDetailPage = () => {
       setLoading(true);
       const data = await bookingAPI.getBooking(id);
       console.log('Booking details:', data);
-
       
-      setBooking(data);
+      // Загружаем название услуги и информацию о клиенте
+      const serviceTitle = await loadServiceTitle(data.service_id);
+      const clientInfo = await loadClientInfo(data.client_id);
+      
+      setBooking({
+        ...data,
+        service_title: serviceTitle,
+        client_name: clientInfo?.name || data.client_name,
+        client_email: clientInfo?.email || data.client_email
+      });
     } catch (err) {
       setError('Не удалось загрузить информацию о бронировании');
       console.error(err);
@@ -128,6 +147,16 @@ const PerformerBookingDetailPage = () => {
     return statuses[status?.toLowerCase()] || 'pending';
   };
 
+  // Показываем загрузку только если не идет редирект
+  if (userRole === 'client') {
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+        <p>Перенаправление...</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="booking-detail-page">
@@ -191,7 +220,7 @@ const PerformerBookingDetailPage = () => {
           <h2>Информация о бронировании</h2>
           <div className="info-row">
             <span className="label">Услуга:</span>
-            <span className="value">{data.service_title}</span>
+            <span className="value">{booking.service_title}</span>
           </div>
           <div className="info-row">
             <span className="label">Дата и время:</span>

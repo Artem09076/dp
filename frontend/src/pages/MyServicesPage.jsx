@@ -123,11 +123,11 @@ const MyServicesPage = () => {
     <div className="my-services-page">
       <div className="page-header">
         <button onClick={() => navigate('/')} className="btn-back-page">
-          ← Back to Home
+          ← Назад
         </button>
-        <h1>My Services</h1>
+        <h1>Мои услуги</h1>
         <button onClick={() => setShowCreateForm(true)} className="btn-create-service">
-          + Create New Service
+          + Создать новую услугу
         </button>
       </div>
 
@@ -136,10 +136,10 @@ const MyServicesPage = () => {
       {showCreateForm && (
         <div className="modal" onClick={cancelForm}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Create New Service</h3>
+            <h3>Создать услугу</h3>
             <form onSubmit={handleCreateService}>
               <div className="form-group">
-                <label>Service Title *</label>
+                <label>Название услуги *</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -149,28 +149,28 @@ const MyServicesPage = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Description</label>
+                <label>Описание услуги</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows="3"
-                  placeholder="Describe your service..."
+                  placeholder="Опишите услугу..."
                 />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Price ($) *</label>
+                  <label>Цена (₽) *</label>
                   <input
                     type="number"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     required
                     min="0"
-                    step="0.01"
+                    step="1"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Duration (minutes) *</label>
+                  <label>Продолжительность (мин) *</label>
                   <input
                     type="number"
                     value={formData.duration_minutes}
@@ -182,8 +182,8 @@ const MyServicesPage = () => {
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="submit" className="btn-confirm">Create Service</button>
-                <button type="button" onClick={cancelForm} className="btn-cancel">Cancel</button>
+                <button type="submit" className="btn-confirm">Создать</button>
+                <button type="button" onClick={cancelForm} className="btn-cancel">Отменить</button>
               </div>
             </form>
           </div>
@@ -214,7 +214,7 @@ const MyServicesPage = () => {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Price ($) *</label>
+                  <label>Price (₽) *</label>
                   <input
                     type="number"
                     value={formData.price}
@@ -260,19 +260,19 @@ const MyServicesPage = () => {
                 <h3>{service.title}</h3>
                 {service.description && <p className="service-description">{service.description}</p>}
                 <div className="service-stats">
-                  <span className="price">💰 ${service.price}</span>
-                  <span className="duration">⏱️ {service.duration_minutes} min</span>
+                  <span className="price">💰 ₽{service.price}</span>
+                  <span className="duration">⏱️ {service.duration_minutes} мин</span>
                 </div>
               </div>
               <div className="service-actions">
                 <button onClick={() => navigate(`/services/performer/${service.id}`)} className="btn-view">
-                    View
+                    Подробнее
                 </button>
                 <button onClick={() => startEdit(service)} className="btn-edit">
-                  Edit
+                  Изменить
                 </button>
                 <button onClick={() => handleDeleteService(service.id)} className="btn-delete">
-                  Delete
+                  Удалить
                 </button>
               </div>
             </div>

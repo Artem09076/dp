@@ -9,7 +9,7 @@ import './ServiceDetailPage.css';
 const ClientServiceDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   
   const [service, setService] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -20,8 +20,16 @@ const ClientServiceDetailPage = () => {
   const [averageRating, setAverageRating] = useState(0);
 
   useEffect(() => {
-    loadServiceDetails();
-  }, [id]);
+    if (userRole === 'performer') {
+      navigate(`/services/performer/${id}`, { replace: true });
+    }
+  }, [userRole, id, navigate]);
+
+  useEffect(() => {
+    if (userRole !== 'performer') {
+      loadServiceDetails();
+    }
+  }, [id, userRole]);
 
   const loadServiceDetails = async () => {
     try {
@@ -56,6 +64,29 @@ const ClientServiceDetailPage = () => {
     }
   };
 
+  const formatDateForBackend = (dateTimeLocal) => {
+    if (!dateTimeLocal) return null;
+    
+    const date = new Date(dateTimeLocal);
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date');
+    }
+    
+    const offset = -date.getTimezoneOffset();
+    const offsetHours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+    const offsetMinutes = String(Math.abs(offset) % 60).padStart(2, '0');
+    const offsetSign = offset >= 0 ? '+' : '-';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = '00';
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+  };
+
   const parseDate = (dateString) => {
     if (!dateString) return null;
     try {
@@ -86,12 +117,21 @@ const ClientServiceDetailPage = () => {
     });
   };
 
+  if (userRole === 'performer') {
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+        <p>Перенаправление...</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="service-detail-page">
         <div className="loading-container">
           <div className="loader"></div>
-          <p>Loading service details...</p>
+          <p>Загрузка информации об услуге...</p>
         </div>
       </div>
     );
@@ -101,10 +141,10 @@ const ClientServiceDetailPage = () => {
     return (
       <div className="service-detail-page">
         <div className="error-container">
-          <h2>Error</h2>
+          <h2>Ошибка</h2>
           <p>{error}</p>
           <button onClick={() => navigate('/')} className="btn-back">
-            ← Back to Home
+            ← На главную
           </button>
         </div>
       </div>
@@ -115,9 +155,9 @@ const ClientServiceDetailPage = () => {
     return (
       <div className="service-detail-page">
         <div className="error-container">
-          <h2>Service Not Found</h2>
+          <h2>Услуга не найдена</h2>
           <button onClick={() => navigate('/')} className="btn-back">
-            ← Back to Home
+            ← На главную
           </button>
         </div>
       </div>
@@ -137,7 +177,7 @@ const ClientServiceDetailPage = () => {
             <div className="rating-large">
               {'⭐'.repeat(Math.round(averageRating))}
               <span className="rating-value">
-                {averageRating > 0 ? ` ${averageRating.toFixed(1)}` : ' No ratings yet'}
+                {averageRating > 0 ? ` ${averageRating.toFixed(1)}` : ' Нет отзывов'}
               </span>
             </div>
             <div className="price-large">{service.price}₽</div>
@@ -159,11 +199,11 @@ const ClientServiceDetailPage = () => {
               {discounts.map(discount => (
                 <div key={discount.id} className="discount-card">
                   <div className="discount-badge">
-                    {discount.type === 'percentage' ? `${discount.value}% OFF` : `$${discount.value} OFF`}
+                    {discount.type === 'percentage' ? `${discount.value}% OFF` : `${discount.value}₽ OFF`}
                   </div>
                   <div className="discount-info">
-                    <p>Valid until {formatDate(discount.validTo)}</p>
-                    <p>Used {discount.usedCount} of {discount.maxUses} times</p>
+                    <p>Действительна до {formatDate(discount.valid_to)}</p>
+                    <p>Использована {discount.used_count} из {discount.max_uses} раз</p>
                   </div>
                 </div>
               ))}
@@ -171,7 +211,6 @@ const ClientServiceDetailPage = () => {
           </div>
         )}
 
-        {/* Только для клиентов - кнопка бронирования */}
         <div className="booking-action">
           <button onClick={() => setShowBookingModal(true)} className="btn-book-now">
             Забронировать
@@ -208,7 +247,7 @@ const ClientServiceDetailPage = () => {
           service={service}
           onSuccess={() => {
             setShowBookingModal(false);
-            alert('Booking created successfully!');
+            alert('Бронирование успешно создано!');
           }}
           onCancel={() => setShowBookingModal(false)}
         />

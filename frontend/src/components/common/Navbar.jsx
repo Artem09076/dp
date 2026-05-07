@@ -15,7 +15,7 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand" onClick={() => navigate('/')}>
-        ServiceBooking
+        Amet
       </div>
       
       <div className="navbar-menu">

@@ -19,17 +19,17 @@ type UserResponse struct {
 }
 
 type UpdateUserRoleRequest struct {
-	Role string `json:"role"` // admin, client, performer
+	Role string `json:"role"`
 }
 
 type VerifyPerformerRequest struct {
-	Status          string `json:"status"` // verified, rejected
+	Status          string `json:"status"`
 	RejectionReason string `json:"rejection_reason,omitempty"`
 }
 
 type BatchVerifyRequest struct {
 	UserIDs []string `json:"user_ids"`
-	Status  string   `json:"status"` // verified, rejected
+	Status  string   `json:"status"`
 }
 
 type ServiceResponse struct {

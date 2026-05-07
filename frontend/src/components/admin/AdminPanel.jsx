@@ -1101,7 +1101,7 @@ const AdminPanel = () => {
                   <tr key={service.id}>
                     <td>{service.title}</td>
                     <td>{service.performer_name || service.performer_id?.slice(0, 8)}</td>
-                    <td>${service.price}</td>
+                    <td>₽{service.price}</td>
                     <td>{service.duration_minutes} мин</td>
                     <td>{formatDate(service.created_at)}</td>
                     <td><div className="action-buttons"><button onClick={() => openEditModal('service', service)} className="btn-edit-sm">✏️ Ред.</button><button onClick={() => handleDeleteService(service.id, service.title)} className="btn-delete-sm">Удалить</button></div></td>

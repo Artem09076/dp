@@ -48,14 +48,6 @@ func NewTokenPair(user sqlc.User, deviceID, tokenID string, secretKey []byte, ac
 
 func NewAccessToken(user sqlc.User, deviceID string, secretKey []byte, ttl time.Duration) (string, error) {
 
-	// claims := token.Claims.(jwt.MapClaims)
-	// claims["user_id"] = user.ID
-	// claims["email"] = user.Email
-	// claims["role"] = user.Role
-	// claims["type"] = "access"
-	// claims["exp"] = time.Now().Add(ttl).Unix()
-	// claims["iat"] = time.Now().Unix()
-
 	claims := AccessClaims{
 		UserID:   user.ID.String(),
 		Email:    user.Email,
@@ -79,11 +71,6 @@ func NewAccessToken(user sqlc.User, deviceID string, secretKey []byte, ttl time.
 
 func NewRefreshToken(user sqlc.User, deviceID, tokenID string, secretKey []byte, ttl time.Duration) (string, error) {
 
-	// claims := token.Claims.(jwt.MapClaims)
-	// claims["user_id"] = user.ID
-	// claims["type"] = "refresh"
-	// claims["exp"] = time.Now().Add(ttl).Unix()
-	// claims["iat"] = time.Now().Unix()
 	claims := RefreshClaims{
 		UserID:   user.ID.String(),
 		DeviceID: deviceID,

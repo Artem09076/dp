@@ -140,7 +140,7 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
         <h3>Забронировать: {service?.title}</h3>
         
         <div className="service-info">
-          <p className="service-duration">⏱️ Продолжительность: {service?.durationMinutes} минут</p>
+          <p className="service-duration">⏱️ Продолжительность: {service?.duration_minutes} мин</p>
           <p className="service-price">Начальная цена: ${originalPrice}</p>
           {hasDiscount && (
             <p className="service-final-price">Финальная цена: <strong>${finalPrice.toFixed(2)}</strong></p>
@@ -187,7 +187,7 @@ const BookingCreate = ({ service, onSuccess, onCancel }) => {
                   
                   return (
                     <option key={discount.id} value={discount.id}>
-                      {discountText} - Сохранить ${savings.toFixed(2)} (Скидка деуствительна до {new Date(discount.validTo).toLocaleDateString()})
+                      {discountText} - Сохранить ${savings.toFixed(2)}
                     </option>
                   );
                 })}

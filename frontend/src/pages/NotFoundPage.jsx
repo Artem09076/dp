@@ -15,9 +15,7 @@ const NotFoundPage = () => {
           <button onClick={() => navigate('/')} className="btn-home">
             🏠 На главную
           </button>
-          <button onClick={() => navigate(-1)} className="btn-back">
-            ← Вернуться назад
-          </button>
+
         </div>
         <div className="not-found-suggestions">
           <h3>Возможно, вы искали:</h3>

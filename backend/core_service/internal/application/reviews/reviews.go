@@ -8,6 +8,7 @@ import (
 	"time"
 
 	apierrors "github.com/Artem09076/dp/backend/core_service/internal/lib/api/errors"
+	"github.com/Artem09076/dp/backend/core_service/internal/metrics"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/reviews/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
@@ -81,6 +82,7 @@ func (s *ReviewService) CreateReview(ctx context.Context, userID uuid.UUID, req 
 	if err != nil {
 		return nil, err
 	}
+	metrics.RecordReviewCreated()
 
 	go s.invalidateReviewCaches(context.Background(), review.ID.String(), booking.ServiceID.String())
 
@@ -229,6 +231,7 @@ func (s *ReviewService) DeleteReview(ctx context.Context, userID uuid.UUID, revi
 	if err != nil {
 		return err
 	}
+	metrics.RecordReviewDeleted()
 
 	go s.invalidateReviewCaches(context.Background(), reviewID.String(), booking.ServiceID.String())
 

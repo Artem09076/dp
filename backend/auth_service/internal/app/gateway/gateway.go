@@ -11,6 +11,7 @@ import (
 	authgrpc "github.com/Artem09076/dp/backend/auth_service/internal/grpc"
 	authpb "github.com/Artem09076/dp/backend/auth_service/proto/gen/auth"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -90,16 +91,24 @@ func (a *App) Start() error {
 		return fmt.Errorf("failed to register gateway: %w", err)
 	}
 
+	mainMux := http.NewServeMux()
+
+	mainMux.Handle("/metrics", promhttp.Handler())
+
 	handler := corsMiddleware(authMiddleware(mux))
+	mainMux.Handle("/", handler)
+
+	finalHandler := metricsMiddleware(mainMux)
 
 	a.httpServer = &http.Server{
 		Addr:         fmt.Sprintf(":%d", a.gatewayPort),
-		Handler:      handler,
+		Handler:      finalHandler,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
 	a.log.Info("starting HTTP gateway", "port", a.gatewayPort)
+	a.log.Info("metrics endpoint available at /metrics")
 	return a.httpServer.ListenAndServe()
 }
 

@@ -130,8 +130,6 @@ func RenderBookingCreated(data BookingData) (string, error) {
             </div>
             
             <p>Чтобы подтвердить бронирование, пожалуйста, нажмите на кнопку ниже.</p>
-            <p><strong>Важно:</strong> Если вы не подтвердите бронь в течение 24 часов, она будет автоматически отменена.</p>
-            
             {{if .ButtonText}}
             <div style="text-align: center;">
                 <a href="{{.ButtonURL}}" class="button">{{.ButtonText}}</a>
@@ -376,15 +374,10 @@ func RenderBookingCancelled(data BookingData) (string, error) {
             
             <p>Если вы не инициировали отмену или у вас есть вопросы, пожалуйста, свяжитесь с нашей службой поддержки.</p>
             
-            {{if .ButtonText}}
-            <div style="text-align: center;">
-                <a href="{{.ButtonURL}}" class="button">{{.ButtonText}}</a>
-            </div>
-            {{end}}
         </div>
         <div class="footer">
             <p>Это автоматическое сообщение, пожалуйста, не отвечайте на него.</p>
-            <p>© {{.Year}} Ваш Сервис. Все права защищены.</p>
+            <p>© {{.Year}} Сервис. Все права защищены.</p>
             <p>По вопросам обращайтесь: <a href="mailto:{{.SupportEmail}}">{{.SupportEmail}}</a></p>
         </div>
     </div>
@@ -545,9 +538,6 @@ func RenderBookingUpdated(data BookingData, version int) (string, error) {
 	return buf.String(), nil
 }
 
-// templates/email_templates.go (добавьте эти функции в существующий файл)
-
-// RenderProfileVerificationSuccess рендерит письмо об успешной верификации
 func RenderProfileVerificationSuccess(data ProfileData) (string, error) {
 	htmlContent := `<!DOCTYPE html>
 <html lang="ru">
@@ -833,9 +823,6 @@ func RenderProfileVerificationReject(data ProfileData) (string, error) {
             <p>Если вы не согласны с решением, свяжитесь со службой поддержки</p>
             
             <div class="action-buttons">
-                {{if .ButtonText}}
-                <a href="{{.ButtonURL}}" class="button">{{.ButtonText}}</a>
-                {{end}}
                 <a href="mailto:{{.SupportEmail}}" class="button-secondary">Связаться с поддержкой</a>
             </div>
         </div>

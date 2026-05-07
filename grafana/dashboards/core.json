@@ -1,0 +1,65 @@
+{
+  
+    "title": "Core Service Dashboard",
+    "timezone": "browser",
+    "refresh": "30s",
+    "panels": [
+      {
+        "title": "HTTP Requests Rate",
+        "type": "graph",
+        "targets": [{
+          "expr": "rate(core_http_requests_total[5m])",
+          "legendFormat": "{{method}} {{endpoint}} - {{status}}"
+        }]
+      },
+      {
+        "title": "P99 Request Duration",
+        "type": "graph",
+        "targets": [{
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(core_http_request_duration_seconds_bucket[5m])))"
+        }]
+      },
+      {
+        "title": "Users Created Rate",
+        "type": "stat",
+        "targets": [{
+          "expr": "rate(core_users_created_total[1h])"
+        }]
+      },
+      {
+        "title": "Services Created Rate",
+        "type": "stat",
+        "targets": [{
+          "expr": "rate(core_services_created_total[1h])"
+        }]
+      },
+      {
+        "title": "Users by Role",
+        "type": "piechart",
+        "targets": [{
+          "expr": "core_users_by_role"
+        }]
+      },
+      {
+        "title": "Reviews Created Rate",
+        "type": "stat",
+        "targets": [{
+          "expr": "rate(core_reviews_created_total[1h])"
+        }]
+      },
+      {
+        "title": "Cache Hit Ratio",
+        "type": "graph",
+        "targets": [{
+          "expr": "core_cache_hits_total / (core_cache_hits_total + core_cache_misses_total) * 100"
+        }]
+      },
+      {
+        "title": "Active Goroutines",
+        "type": "graph",
+        "targets": [{
+          "expr": "core_goroutines_current"
+        }]
+      }
+    ]
+  }

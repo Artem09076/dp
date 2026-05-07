@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import bookingAPI from '../api/booking';
 import coreAPI from '../api/core';
+import { useAuth } from '../contexts/AuthContext';
 import './BookingDetailPage.css';
 
 const ClientBookingDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { userRole } = useAuth();
   
   const [booking, setBooking] = useState(null);
   const [review, setReview] = useState(null);
@@ -19,8 +21,16 @@ const ClientBookingDetailPage = () => {
   const [loadingReview, setLoadingReview] = useState(false);
 
   useEffect(() => {
-    loadBookingDetail();
-  }, [id]);
+    if (userRole === 'performer') {
+      navigate(`/bookings/performer/${id}`, { replace: true });
+    }
+  }, [userRole, id, navigate]);
+
+  useEffect(() => {
+    if (userRole !== 'performer') {
+      loadBookingDetail();
+    }
+  }, [id, userRole]);
 
   const loadServiceTitle = async (serviceId) => {
     try {
@@ -179,6 +189,15 @@ const ClientBookingDetailPage = () => {
 
   const canReview = (booking?.status?.toLowerCase() === 'completed' || booking?.status?.toLowerCase() === 'cancelled') && !review;
   const canCancel = booking?.status?.toLowerCase() === 'pending';
+
+  if (userRole === 'performer') {
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+        <p>Перенаправление...</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

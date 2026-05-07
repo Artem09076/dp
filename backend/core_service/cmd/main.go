@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/Artem09076/dp/backend/core_service/internal/application/admin"
 	"github.com/Artem09076/dp/backend/core_service/internal/application/discounts"
@@ -17,6 +19,7 @@ import (
 	"github.com/Artem09076/dp/backend/core_service/internal/config"
 	"github.com/Artem09076/dp/backend/core_service/internal/lib/jwt"
 	"github.com/Artem09076/dp/backend/core_service/internal/logger"
+	"github.com/Artem09076/dp/backend/core_service/internal/metrics"
 	adminhandler "github.com/Artem09076/dp/backend/core_service/internal/presentation/admin/handlers"
 	discounthandlers "github.com/Artem09076/dp/backend/core_service/internal/presentation/discounts/handlers"
 	coremiddleware "github.com/Artem09076/dp/backend/core_service/internal/presentation/middleware"
@@ -27,6 +30,7 @@ import (
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/rabbit"
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/redis"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/go-chi/chi/v5"
@@ -85,8 +89,13 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(coremiddleware.CorsMiddleware)
+	router.Use(coremiddleware.MetricsMiddleware)
+
+	router.Get("/metrics", promhttp.Handler().ServeHTTP)
+
 	router.Get("/api/v1/services/search", serviceHandlers.SearchServices())
 	router.Get("/api/v1/services/{id}", serviceHandlers.GetService())
+
 	router.Group(func(r chi.Router) {
 		r.Use(coremiddleware.NewJWTMiddleware(log, validator))
 		r.Get("/api/v1/profile", profileHandlers.GetProfile())
@@ -144,6 +153,13 @@ func main() {
 		WriteTimeout: cfg.HTTP.Timeout,
 		IdleTimeout:  cfg.HTTP.IdleTimeout,
 	}
+
+	go func() {
+		for {
+			metrics.ActiveGoroutines.Set(float64(runtime.NumGoroutine()))
+			time.Sleep(30 * time.Second)
+		}
+	}()
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {

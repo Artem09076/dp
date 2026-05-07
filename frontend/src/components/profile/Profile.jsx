@@ -66,11 +66,11 @@ const Profile = () => {
               <>
                 <button onClick={() => navigate('/my-services')} className="action-btn">
                   <span className="action-icon">🛠️</span>
-                  Manage Services
+                  Управление услугами
                 </button>
                 <button onClick={() => navigate('/bookings')} className="action-btn">
                   <span className="action-icon">📋</span>
-                  Manage Bookings
+                  Управление бронированиями
                 </button>
               </>
             )}
@@ -118,9 +118,9 @@ const Profile = () => {
               />
             </div>
             <div className="profile-actions">
-              <button type="submit" className="btn-save">Save</button>
+              <button type="submit" className="btn-save">Сохранить</button>
               <button type="button" onClick={() => setEditing(false)} className="btn-cancel">
-                Cancel
+                Отменить
               </button>
             </div>
           </form>

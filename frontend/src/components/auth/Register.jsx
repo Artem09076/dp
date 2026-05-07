@@ -222,7 +222,7 @@ const handleSubmit = async (e) => {
               >
                 <option value="">Выберите тип вашего бизнеса</option>
                 <option value="self_employed">Самозанятый</option>
-                <option value="ip">ИП (Индивидуальный предприниматель)</option>
+                <option value="IP">ИП (Индивидуальный предприниматель)</option>
               </select>
             </div>
           )}

@@ -43,9 +43,9 @@ func (h *ProfileHandler) HandleVerificationStatusUpdatedSubmit(event dto.Profile
 		Title:        "Профиль успешно верифицирован",
 		Username:     event.Name,
 		ButtonText:   "Перейти в личный кабинет",
-		ButtonURL:    "https://your-service.com/dashboard",
+		ButtonURL:    "http://localhost:5173/profile",
 		Year:         time.Now().Year(),
-		SupportEmail: "support@your-service.com",
+		SupportEmail: "grinartem392@yandex.ru",
 	}
 
 	profileData := templates.ProfileData{
@@ -74,10 +74,8 @@ func (h *ProfileHandler) HandleVerificationStatusUpdatedReject(event dto.Profile
 	emailData := templates.EmailData{
 		Title:        "Верификация профиля отклонена",
 		Username:     event.Name,
-		ButtonText:   "Попробовать снова",
-		ButtonURL:    "https://your-service.com/verification",
 		Year:         time.Now().Year(),
-		SupportEmail: "support@your-service.com",
+		SupportEmail: "grinartem392@yandex.ru",
 	}
 
 	profileData := templates.ProfileData{

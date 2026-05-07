@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/Artem09076/dp/backend/core_service/internal/metrics"
 	"github.com/Artem09076/dp/backend/core_service/internal/presentation/profile/dto"
 	sqlc "github.com/Artem09076/dp/backend/core_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/core_service/internal/storage/rabbit"
@@ -93,7 +94,7 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, userID uuid.UUID, up
 
 func (s *ProfileService) DeleteProfile(ctx context.Context, userID uuid.UUID) error {
 	go s.redis.InvalidateProfile(context.Background(), userID.String())
-
+	metrics.RecordUserDeleted()
 	return s.repo.DeleteProfile(ctx, userID)
 }
 
@@ -107,15 +108,17 @@ func (s *ProfileService) UpdateVerificationStatus(ctx context.Context, userID uu
 		VerificationStatus: verificationStatusValue.VerificationStatus,
 	}
 
-	if verificationStatus == "verified" {
-		go s.publishEvent(ProfileVerificationStatusUpdatedSubmit, userID)
-	} else if verificationStatus == "rejected" {
-		go s.publishEvent(ProfileVerificationStatusUpdatedReject, userID)
-	}
-
 	err := s.repo.UpdateProfileVerificationStatus(ctx, arg)
 	if err != nil {
 		return err
+	}
+
+	if verificationStatus == "verified" {
+		metrics.RecordPerformerVerified()
+		go s.publishEvent(ProfileVerificationStatusUpdatedSubmit, userID)
+	} else if verificationStatus == "rejected" {
+		metrics.RecordPerformerRejected()
+		go s.publishEvent(ProfileVerificationStatusUpdatedReject, userID)
 	}
 
 	go s.redis.InvalidateProfile(context.Background(), userID.String())

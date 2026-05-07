@@ -45,7 +45,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
   const result = await login(credentials);
 
   if (result.success) {
-    navigate('/');  // Редирект на главную
+    navigate('/'); 
   } else {
     setError(result.error || 'Login failed. Please check your credentials.');
   }

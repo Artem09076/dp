@@ -7,17 +7,21 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/Artem09076/dp/backend/booking_service/internal/application/booking"
 	"github.com/Artem09076/dp/backend/booking_service/internal/config"
 	"github.com/Artem09076/dp/backend/booking_service/internal/lib/jwt"
 	"github.com/Artem09076/dp/backend/booking_service/internal/logger"
+	"github.com/Artem09076/dp/backend/booking_service/internal/metrics"
 	bookinghandlers "github.com/Artem09076/dp/backend/booking_service/internal/presentation/booking/handlers"
 	bookingmiddleware "github.com/Artem09076/dp/backend/booking_service/internal/presentation/middleware"
 	sqlc "github.com/Artem09076/dp/backend/booking_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/booking_service/internal/storage/rabbit"
 	"github.com/Artem09076/dp/backend/booking_service/internal/storage/redis"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/go-chi/chi/middleware"
@@ -66,7 +70,9 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(bookingmiddleware.CorsMiddleware)
+	router.Use(bookingmiddleware.MetricsMiddleware)
 
+	router.Get("/metrics", promhttp.Handler().ServeHTTP)
 	router.Group(func(r chi.Router) {
 		r.Use(bookingmiddleware.NewJWTMiddleware(log, validator))
 		r.Post("/api/v1/bookings", bookingHandlers.CreateBooking())
@@ -91,6 +97,13 @@ func main() {
 		WriteTimeout: cfg.HTTP.Timeout,
 		IdleTimeout:  cfg.HTTP.IdleTimeout,
 	}
+
+	go func() {
+		for {
+			metrics.ActiveGoroutines.Set(float64(runtime.NumGoroutine()))
+			time.Sleep(30 * time.Second)
+		}
+	}()
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {

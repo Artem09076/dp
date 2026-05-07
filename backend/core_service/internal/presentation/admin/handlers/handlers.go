@@ -142,7 +142,6 @@ func (h *AdminHandler) DeleteUser() http.HandlerFunc {
 	}
 }
 
-// BatchVerifyPerformers POST /api/v1/admin/users/verify/batch
 func (h *AdminHandler) BatchVerifyPerformers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "admin.handlers.BatchVerifyPerformers"
@@ -164,7 +163,6 @@ func (h *AdminHandler) BatchVerifyPerformers() http.HandlerFunc {
 	}
 }
 
-// GetServices GET /api/v1/admin/services
 func (h *AdminHandler) GetServices() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "admin.handlers.GetServices"
@@ -209,7 +207,6 @@ func (h *AdminHandler) GetServices() http.HandlerFunc {
 	}
 }
 
-// GetBookings GET /api/v1/admin/bookings
 func (h *AdminHandler) GetBookings() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "admin.handlers.GetBookings"
@@ -246,7 +243,6 @@ func (h *AdminHandler) GetBookings() http.HandlerFunc {
 	}
 }
 
-// GetReviews GET /api/v1/admin/reviews
 func (h *AdminHandler) GetReviews() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "admin.handlers.GetReviews"
@@ -292,7 +288,6 @@ func (h *AdminHandler) GetReviews() http.HandlerFunc {
 	}
 }
 
-// DeleteReview DELETE /api/v1/admin/reviews/{review_id}
 func (h *AdminHandler) DeleteReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "admin.handlers.DeleteReview"

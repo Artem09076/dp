@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Artem09076/dp/backend/auth_service/internal/lib/jwt"
+	"github.com/Artem09076/dp/backend/auth_service/internal/metrics"
 	sqlc "github.com/Artem09076/dp/backend/auth_service/internal/storage/db"
 	"github.com/Artem09076/dp/backend/auth_service/internal/storage/redis"
 	"github.com/google/uuid"
@@ -124,6 +125,7 @@ func (a *Auth) Register(ctx context.Context, email string, name string, inn stri
 		log.Error("failed to save session to Redis", "error", err)
 		return "", "", fmt.Errorf("failed to save session: %w", err)
 	}
+	metrics.RecordRegistration()
 
 	log.Info("user registered successfully", "user_id", user.ID)
 
@@ -146,6 +148,8 @@ func (a *Auth) Login1(ctx context.Context, email, password, deviceID, ipAddress 
 		log.Warn("invalid password for user", "email", email)
 		return "", "", fmt.Errorf("invalid email")
 	}
+	metrics.RecordLogin("email")
+
 	return a.generateTokensForUser(ctx, user, deviceID, ipAddress)
 }
 
@@ -173,6 +177,7 @@ func (a *Auth) Login2(ctx context.Context, inn, password, deviceID, ipAddress st
 		log.Warn("invalid password for user", "inn", inn)
 		return "", "", fmt.Errorf("invalid  password")
 	}
+	metrics.RecordLogin("inn")
 	return a.generateTokensForUser(ctx, user, deviceID, ipAddress)
 }
 
@@ -247,6 +252,7 @@ func (a *Auth) RefreshToken(ctx context.Context, refreshToken, deviceID, ipAddre
 		log.Error("failed to update session in Redis", "error", err)
 		return "", "", fmt.Errorf("failed to update session")
 	}
+	metrics.RecordRefreshToken()
 
 	return newAccessToken, newRefreshToken, nil
 }
@@ -316,6 +322,7 @@ func (a *Auth) Logout(ctx context.Context, userID uuid.UUID, deviceID, accessTok
 		log.Error("failed to delete session", "error", err)
 		return fmt.Errorf("failed to logout")
 	}
+	metrics.RecordLogout()
 
 	log.Info("user logged out successfully")
 	return nil

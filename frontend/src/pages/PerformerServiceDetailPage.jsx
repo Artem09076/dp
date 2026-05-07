@@ -7,6 +7,7 @@ import './ServiceDetailPage.css';
 const PerformerServiceDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { userRole } = useAuth();
   
   const [service, setService] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -31,10 +32,16 @@ const PerformerServiceDetailPage = () => {
   });
 
   useEffect(() => {
-    if (id) {
+    if (userRole === 'client') {
+      navigate(`/services/client/${id}`, { replace: true });
+    }
+  }, [userRole, id, navigate]);
+
+  useEffect(() => {
+    if (userRole !== 'client') {
       loadServiceDetails();
     }
-  }, [id]);
+  }, [id, userRole]);
 
   const loadServiceDetails = async () => {
     try {
@@ -47,6 +54,19 @@ const PerformerServiceDetailPage = () => {
       
       if (!serviceData || !serviceData.id) {
         setError('Service not found');
+        setLoading(false);
+        return;
+      }
+
+      
+      const currentUserId = user?.id || localStorage.getItem('userId');
+      const performerId = serviceData.performer_id;
+      
+      console.log('Current user ID:', currentUserId);
+      console.log('Service performer ID:', performerId);
+      
+      if (currentUserId && performerId && currentUserId !== performerId && userRole !== 'admin') {
+        setError('У вас нет доступа к этой услуге');
         setLoading(false);
         return;
       }
@@ -223,12 +243,21 @@ const handleCreateDiscount = async (e) => {
     });
   };
 
+  if (userRole === 'client') {
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+        <p>Перенаправление...</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="service-detail-page">
         <div className="loading-container">
           <div className="loader"></div>
-          <p>Loading service details...</p>
+          <p>Загрузка информации об услуге...</p>
         </div>
       </div>
     );
@@ -238,11 +267,10 @@ const handleCreateDiscount = async (e) => {
     return (
       <div className="service-detail-page">
         <div className="error-container">
-          <h2>Error</h2>
+          <h2>Ошибка</h2>
           <p>{error}</p>
-          <p>Service ID: {id}</p>
           <button onClick={() => navigate('/my-services')} className="btn-back">
-            ← Back to My Services
+            ← Назад к моим услугам
           </button>
         </div>
       </div>
@@ -253,10 +281,9 @@ const handleCreateDiscount = async (e) => {
     return (
       <div className="service-detail-page">
         <div className="error-container">
-          <h2>Service Not Found</h2>
-          <p>Service ID: {id}</p>
+          <h2>Услуга не найдена</h2>
           <button onClick={() => navigate('/my-services')} className="btn-back">
-            ← Back to My Services
+            ← Назад к моим услугам
           </button>
         </div>
       </div>
@@ -267,61 +294,60 @@ const handleCreateDiscount = async (e) => {
     <div className="service-detail-page performer-page">
       <div className="service-detail-container">
         <button onClick={() => navigate('/my-services')} className="btn-back">
-          ← Back to My Services
+          ← Назад к моим услугам
         </button>
         
         <div className="service-detail-header">
           <h1>{service.title}</h1>
           <div className="service-actions-buttons">
             <button onClick={() => setShowEditForm(true)} className="btn-edit-service">
-              ✏️ Edit Service
+              ✏️ Изменить
             </button>
             <button onClick={handleDeleteService} className="btn-delete-service">
-              🗑️ Delete Service
+              🗑️ Удалить
             </button>
           </div>
           <div className="service-meta">
             <div className="rating-large">
               {'⭐'.repeat(Math.round(averageRating))}
               <span className="rating-value">
-                {averageRating > 0 ? ` ${averageRating.toFixed(1)}` : ' No ratings yet'}
+                {averageRating > 0 ? ` ${averageRating.toFixed(1)}` : ' Нет рейтинга'}
               </span>
             </div>
-            <div className="price-large">${service.price}</div>
-            <div className="duration-large">⏱️ {service.duration_minutes || service.durationMinutes} minutes</div>
+            <div className="price-large">{service.price}₽</div>
+            <div className="duration-large">⏱️ {service.duration_minutes || service.durationMinutes} мин</div>
           </div>
         </div>
 
         {service.description && (
           <div className="service-description">
-            <h2>Description</h2>
+            <h2>Описание</h2>
             <p>{service.description}</p>
           </div>
         )}
 
-        {/* Discounts Management */}
         <div className="service-discounts">
           <div className="discounts-header">
-            <h2>Discounts</h2>
+            <h2>Скидки</h2>
             <button onClick={() => setShowDiscountForm(true)} className="btn-add-discount">
-              + Add Discount
+              + Добавить скидку
             </button>
           </div>
           {discounts.length === 0 ? (
-            <p className="no-discounts">No discounts available for this service.</p>
+            <p className="no-discounts">Нет доступных скидок для данной услуги.</p>
           ) : (
             <div className="discounts-list">
               {discounts.map(discount => (
                 <div key={discount.id} className="discount-card">
                   <div className="discount-badge">
-                    {discount.type === 'percentage' ? `${discount.value}% OFF` : `$${discount.value} OFF`}
+                    {discount.type === 'percentage' ? `${discount.value}% OFF` : `${discount.value}₽ OFF`}
                   </div>
                   <div className="discount-info">
-                    <p>Valid from {formatDate(discount.valid_from || discount.validFrom)} to {formatDate(discount.valid_to || discount.validTo)}</p>
-                    <p>Used {discount.used_count || discount.usedCount} of {discount.max_uses || discount.maxUses} times</p>
+                    <p>Действительна от {formatDate(discount.valid_from || discount.validFrom)} до {formatDate(discount.valid_to || discount.validTo)}</p>
+                    <p>Использована {discount.used_count} из {discount.max_uses || discount.maxUses} раз</p>
                   </div>
                   <button onClick={() => handleDeleteDiscount(discount.id)} className="btn-delete-discount">
-                    Delete
+                    Удалить
                   </button>
                 </div>
               ))}
@@ -329,10 +355,9 @@ const handleCreateDiscount = async (e) => {
           )}
         </div>
 
-        {/* Reviews Section */}
         {reviews.length > 0 && (
           <div className="service-reviews">
-            <h2>Customer Reviews ({reviews.length})</h2>
+            <h2>Отзывы ({reviews.length})</h2>
             <div className="reviews-list">
               {reviews.map(review => (
                 <div key={review.id} className="review-card">
@@ -352,14 +377,13 @@ const handleCreateDiscount = async (e) => {
         )}
       </div>
 
-      {/* Edit Service Modal */}
       {showEditForm && (
         <div className="modal" onClick={() => setShowEditForm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Edit Service</h3>
+            <h3>Изменить услугу</h3>
             <form onSubmit={handleUpdateService}>
               <div className="form-group">
-                <label>Service Title *</label>
+                <label>Название сервиса *</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -368,7 +392,7 @@ const handleCreateDiscount = async (e) => {
                 />
               </div>
               <div className="form-group">
-                <label>Description</label>
+                <label>Описание</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -377,7 +401,7 @@ const handleCreateDiscount = async (e) => {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Price ($) *</label>
+                  <label>Цена (₽) *</label>
                   <input
                     type="number"
                     value={formData.price}
@@ -388,7 +412,7 @@ const handleCreateDiscount = async (e) => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Duration (minutes) *</label>
+                  <label>Продолжительность в минутах *</label>
                   <input
                     type="number"
                     value={formData.duration_minutes}
@@ -400,44 +424,43 @@ const handleCreateDiscount = async (e) => {
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="submit" className="btn-confirm">Update Service</button>
-                <button type="button" onClick={() => setShowEditForm(false)} className="btn-cancel">Cancel</button>
+                <button type="submit" className="btn-confirm">Обновить</button>
+                <button type="button" onClick={() => setShowEditForm(false)} className="btn-cancel">Отмена</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Add Discount Modal */}
       {showDiscountForm && (
         <div className="modal" onClick={() => setShowDiscountForm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Add Discount</h3>
+            <h3>Добавить скидку</h3>
             <form onSubmit={handleCreateDiscount}>
               <div className="form-group">
-                <label>Discount Type</label>
+                <label>Тип скидки</label>
                 <select
                   value={discountForm.type}
                   onChange={(e) => setDiscountForm({ ...discountForm, type: e.target.value })}
                 >
-                  <option value="percentage">Percentage (%)</option>
-                  <option value="fixed_amount">Fixed Amount ($)</option>
+                  <option value="percentage">В процентах (%)</option>
+                  <option value="fixed_amount">Фиксированная (₽)</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Value</label>
+                <label>Значение</label>
                 <input
                   type="number"
                   value={discountForm.value}
                   onChange={(e) => setDiscountForm({ ...discountForm, value: e.target.value })}
                   required
                   min="1"
-                  placeholder={discountForm.type === 'percentage' ? 'e.g., 10' : 'e.g., 50'}
+                  placeholder={discountForm.type === 'percentage' ? 'например, 10' : 'например, 500'}
                 />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Valid From</label>
+                  <label>Действительна с</label>
                   <input
                     type="datetime-local"
                     value={discountForm.valid_from}
@@ -446,7 +469,7 @@ const handleCreateDiscount = async (e) => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Valid To</label>
+                  <label>Действительна до</label>
                   <input
                     type="datetime-local"
                     value={discountForm.valid_to}
@@ -456,19 +479,19 @@ const handleCreateDiscount = async (e) => {
                 </div>
               </div>
               <div className="form-group">
-                <label>Max Uses</label>
+                <label>Максимальное количество использований</label>
                 <input
                   type="number"
                   value={discountForm.max_uses}
                   onChange={(e) => setDiscountForm({ ...discountForm, max_uses: e.target.value })}
                   required
                   min="1"
-                  placeholder="e.g., 10"
+                  placeholder="например, 10"
                 />
               </div>
               <div className="modal-actions">
-                <button type="submit" className="btn-confirm">Create Discount</button>
-                <button type="button" onClick={() => setShowDiscountForm(false)} className="btn-cancel">Cancel</button>
+                <button type="submit" className="btn-confirm">Создать скидку</button>
+                <button type="button" onClick={() => setShowDiscountForm(false)} className="btn-cancel">Отмена</button>
               </div>
             </form>
           </div>
